@@ -13,7 +13,7 @@ DAMAGE = 1
 RESOURCE_VALUE = 50
 #team = 0 => ressource et block
 #team = 1 => agent et tir (équipe bleu)
-#team = 12 => agent et tir (équipe rouge)
+#team = 2 => agent et tir (équipe rouge)
 
 
 class Objet:
