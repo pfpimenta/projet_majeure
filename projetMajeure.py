@@ -34,7 +34,7 @@ class Objet:
 	def collision(self,obj ):# how to pass object ?
 	#verifie la collision entre les objets
 		ret = False
-		if (self.x + self.box_x < obj.x - obj.box_x && self.x - self.box_x > obj.x + obj.box_x && self.y + self.box_y < obj.y - obj.box_y && self.y - self.box_y > obj.y + obj.box_y):
+		if (self.x + self.box_x < obj.x - obj.box_x and self.x - self.box_x > obj.x + obj.box_x and self.y + self.box_y < obj.y - obj.box_y and self.y - self.box_y > obj.y + obj.box_y):
     			ret = False
 		else:
 			ret = True
