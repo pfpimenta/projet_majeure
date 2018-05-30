@@ -1,13 +1,26 @@
-Pour le JEU:
+/////////////////////////////////////////////////////////////////////
+DERNIERE MAJ:
+  -La gestion collision est maintenant une methode de la classe objet
+  -Ajout de classe : 
+        *Classe Tir
+        *Classe Resource
+        *Classe Block
+///////////////////////////////////////////////////////////////////////
+
+A FAIRE:
+
+:::::::::::::::::::::::::::::::Pour le JEU:::::::::::::::::::::::::::::::::::::::
 
 Faire classe: 
-              -Tire(gestion collision)
-              -Block
-              -Ressource
+              
               -Area(Zone d'affichage) 
-              -...
+              
               
 
 
 
-Pour le learning:
+:::::::::::::::::::::::::::::Pour le learning:::::::::::::::::::::::::::::::::
+
+ Plein de chose. 
+
+  
