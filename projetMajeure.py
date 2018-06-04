@@ -8,6 +8,8 @@
 
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtGui import QPainter, QColor, QFont
+from PyQt5.QtCore import Qt
 PV_INITIAL = 3
 DAMAGE = 1
 RESOURCE_VALUE = 50
@@ -84,15 +86,33 @@ class Resource:
 	def __init__(self,x=0,y=0, dx=0, dy=0):
 		Objet.__init__(self,x,y);
 		self.value =  RESOURCE_VALUE
+
+
+class Area(QWidget):
+	#classe d'affichage 
+	def __init__(self):
+
+		super().__init__()
+		self.setGeometry(300, 300, 350, 100)
+		self.setWindowTitle('REINFORCEMENT LEARNING')
+		self.resize(400, 400)
+		self.move(300, 300)
+		self.show()
+
+
+
+
+
+
+
+
+
 		
 if __name__ == '__main__':
     
     app = QApplication(sys.argv)
 
-    w = QWidget()
-    w.resize(400, 250)
-    w.move(300, 300)
-    w.setWindowTitle('REINFORCEMENT LEARNING')
-    w.show()
+    area = Area()
     
+
     sys.exit(app.exec_())
