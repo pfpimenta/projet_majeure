@@ -8,8 +8,8 @@
 
 import sys
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
-from PyQt5.QtGui import QPainter, QColor, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
+from PyQt5.QtCore import Qt, QTimer
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 PV_INITIAL = 3
@@ -91,10 +91,15 @@ class Resource:
 
 
 class Area(QWidget):
-	#classe d'affichage 
+	#classe d'affichage
+	game = None
+	qp = None # Q painter
+	background_pm = None # pixmap pour le background
 	def __init__(self, game):
 		super().__init__()
 
+		self.qp = QPainter()
+		self.game = game
 		playPauseButton = QPushButton('Play/Pause', self)
 		playPauseButton.clicked.connect(game.playPause)
 		playPauseButton.resize(playPauseButton.sizeHint())
@@ -103,16 +108,27 @@ class Area(QWidget):
 		resetButton = QPushButton('Reset', self)
 		resetButton.clicked.connect(game.reset)
 		resetButton.resize(resetButton.sizeHint())
-		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2)     
+		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2)
 
+		self.background_pm = QPixmap()
+		brush = QBrush(Qt.SolidPattern)
+		self.qp.begin(self)
+		self.qp.setBrush(brush)
+		self.qp.drawRect(130, 15, 90, 60)
+		# self.qp.end(self)
+	
 		self.setGeometry(300, 300, 350, 100)
 		self.setWindowTitle('REINFORCEMENT LEARNING')
 		self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 		self.move(300, 300)
 		self.show()
 
-
+	def draw(self):
+		for objet in self.game.objectsList:
+			objet.draw()
+		#afficher le background
 		
+
 
 
 class Game():
@@ -126,7 +142,11 @@ class Game():
 	def reset(self):
 		print ("DEBUG reset")
 		pass #TODO
-		
+	def update(self):
+	# appellee a chaque frame
+		for objet in self.objectsList:
+			objet.move()
+		pass #TODO
 
 
 
@@ -137,9 +157,17 @@ class Game():
 		
 if __name__ == '__main__':
     
-    app = QApplication(sys.argv)
-    game = Game()
-    area = Area(game)
-    
+	app = QApplication(sys.argv)
+	game = Game()
+	area = Area(game)
+	    
+	def timeout():
+		print("DEBUG timeout")
+		game.update()
+		area.draw()
 
-    sys.exit(app.exec_())
+	timer = QTimer()
+	timer.timeout.connect(timeout)
+	timer.start(100)
+
+	sys.exit(app.exec_())
