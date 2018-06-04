@@ -8,7 +8,7 @@
 
 import sys
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
-from PyQt5.QtGui import QPainter, QColor, QFont, QBrush
+from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
 from PyQt5.QtCore import Qt, QTimer
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
@@ -94,6 +94,7 @@ class Area(QWidget):
 	#classe d'affichage
 	game = None
 	qp = None # Q painter
+	brush = None # Q brush
 	background_pm = None # pixmap pour le background
 	def __init__(self, game):
 		super().__init__()
@@ -111,11 +112,8 @@ class Area(QWidget):
 		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2)
 
 		self.background_pm = QPixmap()
-		brush = QBrush(Qt.SolidPattern)
-		self.qp.begin(self)
-		self.qp.setBrush(brush)
-		self.qp.drawRect(130, 15, 90, 60)
-		# self.qp.end(self)
+		self.brush = QBrush(Qt.SolidPattern)
+
 	
 		self.setGeometry(300, 300, 350, 100)
 		self.setWindowTitle('REINFORCEMENT LEARNING')
@@ -124,12 +122,16 @@ class Area(QWidget):
 		self.show()
 
 	def draw(self):
+		self.qp.begin(self)
+		self.qp.setBrush(self.brush)
+		#afficher le background
+		self.qp.drawRect(130, 15, 90, 60)
+		#afficher les objets
 		for objet in self.game.objectsList:
-			objet.draw()
-		pass #TODO
+			objet.draw(qp)
+		# ___
+		self.qp.end()
 
-
-		
 
 
 class Game():
@@ -145,8 +147,10 @@ class Game():
 		pass #TODO
 	def update(self):
 	# appellee a chaque frame
+	# mouvement des agents et tires
 		for objet in self.objectsList:
 			objet.move()
+	# collision
 		pass #TODO
 
 

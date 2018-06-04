@@ -94,6 +94,7 @@ class Area(QWidget):
 	#classe d'affichage
 	game = None
 	qp = None # Q painter
+	brush = None # Q brush
 	background_pm = None # pixmap pour le background
 	def __init__(self, game):
 		super().__init__()
@@ -108,14 +109,11 @@ class Area(QWidget):
 		resetButton = QPushButton('Reset', self)
 		resetButton.clicked.connect(game.reset)
 		resetButton.resize(resetButton.sizeHint())
-		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2)
+		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2) 
 
 		self.background_pm = QPixmap()
-		brush = QBrush(Qt.SolidPattern)
-		self.qp.begin(self)
-		self.qp.setBrush(brush)
-		self.qp.drawRect(130, 15, 90, 60)
-		# self.qp.end(self)
+		self.brush = QBrush(Qt.SolidPattern)
+
 	
 		self.setGeometry(300, 300, 350, 100)
 		self.setWindowTitle('REINFORCEMENT LEARNING')
@@ -124,10 +122,15 @@ class Area(QWidget):
 		self.show()
 
 	def draw(self):
-		for objet in self.game.objectsList:
-			objet.draw()
+		self.qp.begin(self)
+		self.qp.setBrush(self.brush)
 		#afficher le background
-		
+		self.qp.drawRect(130, 15, 90, 60)
+		#afficher les objets
+		for objet in self.game.objectsList:
+			objet.draw(qp)
+		# ___
+		self.qp.end()
 
 
 
@@ -144,8 +147,10 @@ class Game():
 		pass #TODO
 	def update(self):
 	# appellee a chaque frame
+	# mouvement des agents et tires
 		for objet in self.objectsList:
 			objet.move()
+	# collision
 		pass #TODO
 
 
