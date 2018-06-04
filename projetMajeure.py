@@ -7,9 +7,11 @@
 # TIZON, Nicolas
 
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
 from PyQt5.QtGui import QPainter, QColor, QFont
 from PyQt5.QtCore import Qt
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 500
 PV_INITIAL = 3
 DAMAGE = 1
 RESOURCE_VALUE = 50
@@ -47,7 +49,7 @@ class Objet:
 			ret = True
 		return ret
 			
-	def draw(self):
+	def draw(self, painter):
 		#affichage de l'objet
 		pass #TODO
 		
@@ -90,16 +92,41 @@ class Resource:
 
 class Area(QWidget):
 	#classe d'affichage 
-	def __init__(self):
-
+	def __init__(self, game):
 		super().__init__()
+
+		playPauseButton = QPushButton('Play/Pause', self)
+		playPauseButton.clicked.connect(game.playPause)
+		playPauseButton.resize(playPauseButton.sizeHint())
+		playPauseButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.1)     
+
+		resetButton = QPushButton('Reset', self)
+		resetButton.clicked.connect(game.reset)
+		resetButton.resize(resetButton.sizeHint())
+		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2)     
+
 		self.setGeometry(300, 300, 350, 100)
 		self.setWindowTitle('REINFORCEMENT LEARNING')
-		self.resize(400, 400)
+		self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 		self.move(300, 300)
 		self.show()
 
 
+		
+
+
+class Game():
+	#class pour gerer le jeu
+	objectsList = []
+	def __init__(self):
+		pass #TODO
+	def playPause(self):
+		print ("DEBUG play pause")
+		pass #TODO
+	def reset(self):
+		print ("DEBUG reset")
+		pass #TODO
+		
 
 
 
@@ -111,8 +138,8 @@ class Area(QWidget):
 if __name__ == '__main__':
     
     app = QApplication(sys.argv)
-
-    area = Area()
+    game = Game()
+    area = Area(game)
     
 
     sys.exit(app.exec_())
