@@ -19,8 +19,8 @@ DAMAGE = 1
 RESOURCE_VALUE = 50
 VITESSE = 10
 #team = 0 => ressource et block
-#team = 1 => agent et tir (équipe bleu)
-#team = 2 => agent et tir (équipe rouge)
+#team = 1 => agent et tir (equipe bleu)
+#team = 2 => agent et tir (equipe rouge)
 
 #Action possible
 STOP = 0
@@ -93,12 +93,12 @@ class Agent(Objet):
 			pass
 		
 		if (current_action == MOVE):
-			self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains dépacment
+			self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains deplacement
 			self.dx = int(round(VITESSE*cos(agent.angle)))
 
 		if (current_action == TRIGO):
 			self.angle = angle + dr
-		if (current_action == HORAIRE)
+		if (current_action == HORAIRE):
 			self.angle = angle - dr
 		
 		if(current_action == SHOOT):
@@ -118,7 +118,7 @@ class Tir(Objet):
 # classe pour les tirs
 
 	def __init__(self,agent):
-		self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains dépacment
+		self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains deplacement
 		self.dx = int(round(VITESSE*cos(agent.angle)))
 		Objet.__init__(self,agent.x,agent.y,dx,dy,agent.team,agent.angle);
 		self.dmg = DAMAGE
@@ -141,9 +141,9 @@ class Resource(Objet):
 
 
 
-grid_area = np.zeros(H,W)
-for i in range(len(objets)):
-	grid_area[objets.x][objets.y] = objet.type
+#grid_area = np.zeros(H,W)
+#for i in range(len(objets)):
+#	grid_area[objets.x][objets.y] = objet.type
 
 
 
@@ -151,34 +151,26 @@ for i in range(len(objets)):
 
 class State():
 
-	def_ini_(self,agent,objets):
+	def __init__(self,agent,objets):
 		for i in objets:
-			if (i.type == 1:) #AGENT DE LA MEME EQUIPE
+			if (i.type == 1): #AGENT DE LA MEME EQUIPE
 				if (i.team == agent.team):
 					self.table_angle_ally.append(agent.angle(i))
 					self.table_dist_ally.append(agent.distance(i))
 				else:
 					self.table_angle_ennemy.append(agent.angle(i))
 					self.table_dist_ennemy.append(agent.distance(i))
-
-			if (i.type == 2:) #TIR
+			if (i.type == 2): #TIR
 				self.table_angle_tir.append(agent.angle(i))
 				self.table_dist_tir.append(agent.distance(i))
-
-			if (i.type == 0:) #RESOURCE
+			if (i.type == 0): #RESOURCE
 				self.table_angle_tir.append(agent.angle(i))
 				self.table_dist_tir.append(agent.distance(i))
-"""
-			if (i.type == 3)#BLOCK
-				table_angle_tir.append(agent.angle(i))
-				table_dist_tir.append(agent.distance(i))
-
-"""
-		
-		self.disance_nearest_ennemy = min(self.table_dist_ennemy)
-		self.angle_nearest_ennemy = self.table_angle_ennemy(self.table_dist_ennemy.index(self.disance_nearest_ennemy))
-
-
+#			if (i.type == 3):#BLOCK
+#				table_angle_tir.append(agent.angle(i))
+#				table_dist_tir.append(agent.distance(i))
+		self.distance_nearest_ennemy = min(self.table_dist_ennemy)
+		self.angle_nearest_ennemy = self.table_angle_ennemy(self.table_dist_ennemy.index(self.distance_nearest_ennemy))
 
 		
 
