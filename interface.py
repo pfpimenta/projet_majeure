@@ -15,6 +15,7 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 
 class Ui_MainWindow(object):
+	# classe cree par QtDesigner
 	def setupUi(self, MainWindow):
 		MainWindow.setObjectName("MainWindow")
 		MainWindow.resize(845, 583)

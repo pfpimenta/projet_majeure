@@ -143,7 +143,7 @@ class gameWidget(QWidget):
 		self.qp.begin(self)
 		self.qp.setBrush(self.brush)
 		#afficher le background
-		self.qp.drawRect(0, 0, 100, 10000)
+		self.qp.drawRect(0, 0, 10000, 10000)
 		#afficher les objets
 		for objet in self.game.objectsList:
 			objet.draw(qp)
