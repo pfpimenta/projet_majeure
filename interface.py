@@ -16,25 +16,27 @@ WINDOW_HEIGHT = 500
 
 class Ui_MainWindow(object):
 	# classe cree par QtDesigner
+	MainWindow = None # ajoutee
 	def setupUi(self, MainWindow):
-		MainWindow.setObjectName("MainWindow")
-		MainWindow.resize(845, 583)
-		self.centralwidget = QtWidgets.QWidget(MainWindow)
+		self.MainWindow = MainWindow
+		self.MainWindow.setObjectName("MainWindow")
+		self.MainWindow.resize(845, 583)
+		self.centralwidget = QtWidgets.QWidget(self.MainWindow)
 		self.centralwidget.setObjectName("centralwidget")
 		self.playpause = QtWidgets.QPushButton(self.centralwidget)
-		self.playpause.clicked.connect(MainWindow.game.playPause) # ajoutee
+		self.playpause.clicked.connect(self.MainWindow.game.playPause) # ajoutee
 		self.playpause.setGeometry(QtCore.QRect(530, 30, 141, 27))
 		self.playpause.setObjectName("playpause")
 		self.reset = QtWidgets.QPushButton(self.centralwidget)
-		self.reset.clicked.connect(MainWindow.game.reset) # ajoutee
+		self.reset.clicked.connect(self.MainWindow.game.reset) # ajoutee
 		self.reset.setGeometry(QtCore.QRect(700, 30, 131, 27))
 		self.reset.setObjectName("reset")
-		self.gameWidget = gameWidget(self.centralwidget, MainWindow.game)
+		self.gameWidget = gameWidget(self.centralwidget, self.MainWindow.game)
 		self.gameWidget.setGeometry(QtCore.QRect(20, 20, 500, 500))
 		self.gameWidget.setObjectName("gameWidget")
-		self.label = QtWidgets.QLabel(self.centralwidget)
-		self.label.setGeometry(QtCore.QRect(530, 70, 131, 17))
-		self.label.setObjectName("label")
+		self.nbAgents = QtWidgets.QLabel(self.centralwidget)
+		self.nbAgents.setGeometry(QtCore.QRect(530, 70, 131, 17))
+		self.nbAgents.setObjectName("nbAgents")
 		self.e1 = QtWidgets.QLabel(self.centralwidget)
 		self.e1.setGeometry(QtCore.QRect(530, 110, 71, 17))
 		self.e1.setObjectName("e1")
@@ -60,51 +62,58 @@ class Ui_MainWindow(object):
 		self.nbEpisodesLabel.setGeometry(QtCore.QRect(530, 470, 151, 17))
 		self.nbEpisodesLabel.setObjectName("nbEpisodesLabel")
 		self.spinBoxE1 = QtWidgets.QSpinBox(self.centralwidget)
+		self.spinBoxE1.valueChanged.connect(self.updateNbE1) # ajoutee
 		self.spinBoxE1.setGeometry(QtCore.QRect(600, 100, 51, 27))
 		self.spinBoxE1.setObjectName("spinBoxE1")
 		self.spinBoxE2 = QtWidgets.QSpinBox(self.centralwidget)
+		self.spinBoxE2.valueChanged.connect(self.updateNbE2) # ajoutee
 		self.spinBoxE2.setGeometry(QtCore.QRect(780, 100, 51, 27))
 		self.spinBoxE2.setObjectName("spinBoxE2")
 		self.nbEpisodes = QtWidgets.QLabel(self.centralwidget)
 		self.nbEpisodes.setGeometry(QtCore.QRect(680, 460, 51, 31))
 		self.nbEpisodes.setObjectName("nbEpisodes")
 		self.SpinBoxLearningRate = QtWidgets.QDoubleSpinBox(self.centralwidget)
+		self.SpinBoxLearningRate.valueChanged.connect(self.updateLR) # ajoutee
 		self.SpinBoxLearningRate.setGeometry(QtCore.QRect(690, 200, 141, 27))
 		self.SpinBoxLearningRate.setDecimals(10)
 		self.SpinBoxLearningRate.setObjectName("SpinBoxLearningRate")
 		self.SpinBoxTimePeriod = QtWidgets.QDoubleSpinBox(self.centralwidget)
+		self.SpinBoxTimePeriod.valueChanged.connect(self.updateTimePeriod) # ajoutee
 		self.SpinBoxTimePeriod.setGeometry(QtCore.QRect(650, 320, 91, 27))
 		self.SpinBoxTimePeriod.setDecimals(4)
 		self.SpinBoxTimePeriod.setObjectName("SpinBoxTimePeriod")
 		self.spinBoxModulo = QtWidgets.QSpinBox(self.centralwidget)
+		self.spinBoxModulo.valueChanged.connect(self.updateTimeModulo) # ajoutee
 		self.spinBoxModulo.setGeometry(QtCore.QRect(650, 360, 60, 27))
 		self.spinBoxModulo.setObjectName("spinBoxModulo")
-		self.SpinBoxRSR = QtWidgets.QDoubleSpinBox(self.centralwidget)
+		self.SpinBoxRSR = QtWidgets.QDoubleSpinBox(self.centralwidget) # resource spawn rate
+		self.SpinBoxRSR.valueChanged.connect(self.updateRSR) # ajoutee
 		self.SpinBoxRSR.setGeometry(QtCore.QRect(690, 160, 141, 27))
 		self.SpinBoxRSR.setDecimals(10)
 		self.SpinBoxRSR.setObjectName("SpinBoxRSR")
-		self.SpinBoxRPP = QtWidgets.QDoubleSpinBox(self.centralwidget)
+		self.SpinBoxRPP = QtWidgets.QDoubleSpinBox(self.centralwidget) # random path prob
+		self.SpinBoxRPP.valueChanged.connect(self.updateRPP) # ajoutee
 		self.SpinBoxRPP.setGeometry(QtCore.QRect(690, 240, 141, 27))
 		self.SpinBoxRPP.setDecimals(10)
 		self.SpinBoxRPP.setObjectName("SpinBoxRPP")
-		MainWindow.setCentralWidget(self.centralwidget)
-		self.menubar = QtWidgets.QMenuBar(MainWindow)
+		self.MainWindow.setCentralWidget(self.centralwidget)
+		self.menubar = QtWidgets.QMenuBar(self.MainWindow)
 		self.menubar.setGeometry(QtCore.QRect(0, 0, 845, 25))
 		self.menubar.setObjectName("menubar")
-		MainWindow.setMenuBar(self.menubar)
-		self.statusbar = QtWidgets.QStatusBar(MainWindow)
+		self.MainWindow.setMenuBar(self.menubar)
+		self.statusbar = QtWidgets.QStatusBar(self.MainWindow)
 		self.statusbar.setObjectName("statusbar")
-		MainWindow.setStatusBar(self.statusbar)
+		self.MainWindow.setStatusBar(self.statusbar)
 
-		self.retranslateUi(MainWindow)
-		QtCore.QMetaObject.connectSlotsByName(MainWindow)
+		self.retranslateUi()
+		QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
 
-	def retranslateUi(self, MainWindow):
+	def retranslateUi(self):
 		_translate = QtCore.QCoreApplication.translate
-		MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+		self.MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
 		self.playpause.setText(_translate("MainWindow", "Play / Pause"))
 		self.reset.setText(_translate("MainWindow", "Reset"))
-		self.label.setText(_translate("MainWindow", "Nombre d\'Agents"))
+		self.nbAgents.setText(_translate("MainWindow", "Nombre d\'Agents"))
 		self.e1.setText(_translate("MainWindow", "Equipe 1:"))
 		self.learningRate.setText(_translate("MainWindow", "Learning rate : "))
 		self.e2.setText(_translate("MainWindow", "Equipe 2:"))
@@ -114,8 +123,20 @@ class Ui_MainWindow(object):
 		self.timeModulo.setText(_translate("MainWindow", "Time modulo:"))
 		self.nbEpisodesLabel.setText(_translate("MainWindow", "Nombre d\'Episodes:"))
 		self.nbEpisodes.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:18pt; font-weight:600;\">0</span></p></body></html>"))
-
-
+	def updateNbE1(self): # fonction pour le spinbox
+		self.MainWindow.game.window_nb_agents_E1 = self.spinBoxE1.value()
+	def updateNbE2(self): # fonction pour le spinbox
+		self.MainWindow.game.window_nb_agents_E2 = self.spinBoxE2.value()
+	def updateRSR(self): # fonction pour le spinbox 
+		self.MainWindow.game.window_resource_spawn_rate = self.SpinBoxRSR.value()
+	def updateLR(self): # fonction pour le spinbox 
+		self.MainWindow.game.window_learning_rate = self.SpinBoxLearningRate.value()
+	def updateRPP(self): # fonction pour le spinbox 
+		self.MainWindow.game.window_random_path_prob = self.SpinBoxRPP.value()
+	def updateTimePeriod(self): # fonction pour le spinbox 
+		self.MainWindow.game.window_time_period = self.SpinBoxTimePeriod.value()
+	def updateTimeModulo(self): # fonction pour le spinbox 
+		self.MainWindow.game.window_time_modulo = self.spinBoxModulo.value()
 
 
 

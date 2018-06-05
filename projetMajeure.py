@@ -13,7 +13,7 @@ from PyQt5.QtCore import Qt, QTimer
 from interface import *
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
-import numpy as 
+import numpy as np
 import random as rd
 import math
 PV_INITIAL = 3
@@ -47,7 +47,7 @@ N_STEP = 10
 H = 256
 W = 256
 
-N_STATE = len([0:np.sqrt(H*H+W*W):])
+#N_STATE = len([0:np.sqrt(H*H+W*W)])
 q_table = dict()
 eps = 0.1
 
@@ -114,7 +114,7 @@ class Agent(Objet):
 
 		if (current_action == TRIGO):
 			self.angle = angle + dr
-		if (current_action == HORAIRE)
+		if (current_action == HORAIRE):
 			self.angle = angle - dr
 		
 		if(current_action == SHOOT):
@@ -154,22 +154,11 @@ class Resource(Objet):
 
 
 
-
-
-
-grid_area = np.zeros(H,W)
-for i in range(len(objets)):
-	grid_area[objets.x][objets.y] = objet.type
-
-
-
-
-
 class State():
 
-	def_ini_(self,agent,objets):
+	def __init__(self,agent,objets):
 		for i in objets:
-			if (i.type == 1:) #AGENT DE LA MEME EQUIPE
+			if (i.type == 1): #AGENT DE LA MEME EQUIPE
 				if (i.team == agent.team):
 					self.table_angle_ally.append(agent.angle(i))
 					self.table_dist_ally.append(agent.distance(i))
@@ -177,19 +166,13 @@ class State():
 					self.table_angle_ennemy.append(agent.angle(i))
 					self.table_dist_ennemy.append(agent.distance(i))
 
-			if (i.type == 2:) #TIR
+			if (i.type == 2): #TIR
 				self.table_angle_tir.append(agent.angle(i))
 				self.table_dist_tir.append(agent.distance(i))
 
-			if (i.type == 0:) #RESOURCE
+			if (i.type == 0): #RESOURCE
 				self.table_angle_resource.append(agent.angle(i))
 				self.table_dist_resource.append(agent.distance(i))
-"""
-			if (i.type == 3)#BLOCK
-				table_angle_tir.append(agent.angle(i))
-				table_dist_tir.append(agent.distance(i))
-
-"""
 		#STATE DEFINITION:
 		#position ennemi le plus proche
 		self.disance_nearest_ennemy = np.min(self.table_dist_ennemy)
@@ -229,7 +212,6 @@ def markov_process(state):
 def calcul_reward(current_state, action):
 	next_state = State(agent,objets)
 
-	if ()
 
 
 
@@ -278,13 +260,49 @@ class Game():
 	#class pour gerer le jeu
 	objectsList = []
 	list_agent = []
+	# initialisations : 
+	# "current" : la valeur utilisee par le jeu
+	# "window" : la valeur qui l'utilisateur change a la fenettre
+	current_nb_agents_E1 = 0 # equipe 1
+	window_nb_agents_E1 = 0
+	current_nb_agents_E2 = 0 # equipe 2
+	window_nb_agents_E2 = 0
+	current_resource_spawn_rate = 0
+	window_resource_spawn_rate = 0
+	current_learning_rate = 0
+	window_learning_rate = 0
+	current_random_path_prob = 0 # prob de l'exploration de boltzman
+	window_random_path_prob = 0 # prob de l'exploration de boltzman
+	current_time_period = 0 # temps entre frames
+	window_time_period = 0 # temps entre frames
+	current_time_modulo = 0 # pour afficher a chaque X frames
+	window_time_modulo = 0 # pour afficher a chaque X frames
+	current_nombre_depisodes = 0
+	window_nombre_depisodes = 0
 	def __init__(self):
-		list_agent.append(Agent())
+		self.list_agent.append(Agent())
 	def playPause(self):
 		print ("DEBUG play pause")
 		pass #TODO
 	def reset(self):
-		print ("DEBUG reset")
+		print ("DEBUG reset") # DEBUG
+		# actualiser les valeurs
+		self.current_nb_agents_E1 = self.window_nb_agents_E1
+		self.current_nb_agents_E2 = self.window_nb_agents_E2
+		self.current_resource_spawn_rate = self.window_resource_spawn_rate
+		self.current_learning_rate = self.window_learning_rate
+		self.current_random_path_prob = self.window_random_path_prob
+		self.current_time_period = self.window_time_period
+		self.current_time_modulo = self.window_time_modulo
+		self.current_nombre_depisodes = self.window_nombre_depisodes
+		print ("nb_agents_E1: " + str(self.current_nb_agents_E1))
+		print("nb_agents_E2 : " + str(self.current_nb_agents_E2))
+		print("resource_spawn_rate " + str(self.current_resource_spawn_rate))
+		print("learning_rate" + str(self.current_learning_rate))
+		print("random_path_prob : " + str(self.current_random_path_prob))
+		print("time_period " + str(self.current_time_period))
+		print("time_modulo : " + str(self.current_time_modulo))
+		print("nombre_depisodes : " + str(self.current_nombre_depisodes))
 		pass #TODO
 	def update(self):
 	# appellee a chaque frame
