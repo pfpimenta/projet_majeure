@@ -28,7 +28,7 @@ class Ui_MainWindow(object):
 		self.reset.clicked.connect(MainWindow.game.reset) # ajoutee
 		self.reset.setGeometry(QtCore.QRect(700, 30, 131, 27))
 		self.reset.setObjectName("reset")
-		self.gameWidget = QtWidgets.QWidget(self.centralwidget)
+		self.gameWidget = gameWidget(self.centralwidget, MainWindow.game)
 		self.gameWidget.setGeometry(QtCore.QRect(20, 20, 500, 500))
 		self.gameWidget.setObjectName("gameWidget")
 		self.label = QtWidgets.QLabel(self.centralwidget)
@@ -118,14 +118,15 @@ class Ui_MainWindow(object):
 
 
 
-class Area(QWidget):
-	#classe d'affichage
+class gameWidget(QWidget):
+	#classe de l'aire d'affichage
 	qp = None # Q painter
 	brush = None # Q brush
 	background_pm = None # pixmap pour le background
+	game = None
 
-	def __init__(self):
-		super().__init__()
+	def __init__(self, parent, game):
+		super().__init__(parent)
 
 		self.qp = QPainter()
 		self.game = game
@@ -156,11 +157,7 @@ class Fenetre(QtWidgets.QMainWindow):
 	def __init__(self, game):
 		super().__init__()
 
-		self.qp = QPainter()
 		self.game = game
-
-		self.background_pm = QPixmap()
-		self.brush = QBrush(Qt.SolidPattern)
 	
 		self.setGeometry(300, 300, 350, 100)
 		self.setWindowTitle('REINFORCEMENT LEARNING')
