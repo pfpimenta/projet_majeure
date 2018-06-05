@@ -11,16 +11,17 @@ DERNIERE MAJ:
         *Classe Tir
         *Classe Resource
         *Classe Block
+        
+  -Affichage des objets (méthode draw(self) dans class objet)
+  -Area(Zone d'affichage) 
 ///////////////////////////////////////////////////////////////////////
 
 A FAIRE:
 
 :::::::::::::::::::::::::::::::Pour le JEU:::::::::::::::::::::::::::::::::::::::
-
-Faire classe: 
-              -Affichage des objets (méthode draw(self) dans class objet)
-              -Area(Zone d'affichage) 
               
+              Création de ressources
+              Rotation des images
               
 
 
