@@ -10,6 +10,7 @@ import sys
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
 from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
 from PyQt5.QtCore import Qt, QTimer
+from interface import *
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 import numpy as np
@@ -176,53 +177,6 @@ class State():
 
 
 
-
-
-
-class Area(QWidget):
-	#classe d'affichage
-	game = None
-	qp = None # Q painter
-	brush = None # Q brush
-	background_pm = None # pixmap pour le background
-	def __init__(self, game):
-		super().__init__()
-
-		self.qp = QPainter()
-		self.game = game
-		playPauseButton = QPushButton('Play/Pause', self)
-		playPauseButton.clicked.connect(game.playPause)
-		playPauseButton.resize(playPauseButton.sizeHint())
-		playPauseButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.1)     
-
-		resetButton = QPushButton('Reset', self)
-		resetButton.clicked.connect(game.reset)
-		resetButton.resize(resetButton.sizeHint())
-		resetButton.move(WINDOW_WIDTH*0.8, WINDOW_HEIGHT*0.2) 
-
-		self.background_pm = QPixmap()
-		self.brush = QBrush(Qt.SolidPattern)
-
-	
-		self.setGeometry(300, 300, 350, 100)
-		self.setWindowTitle('REINFORCEMENT LEARNING')
-		self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-		self.move(300, 300)
-		self.show()
-
-	def draw(self):
-		self.qp.begin(self)
-		self.qp.setBrush(self.brush)
-		#afficher le background
-		self.qp.drawRect(130, 15, 90, 60)
-		#afficher les objets
-		for objet in self.game.objectsList:
-			objet.draw(qp)
-		# ___
-		self.qp.end()
-
-
-
 class Game():
 	#class pour gerer le jeu
 	objectsList = []
@@ -249,19 +203,23 @@ class Game():
 
 
 		
+# main
 if __name__ == '__main__':
     
 	app = QApplication(sys.argv)
 	game = Game()
-	area = Area(game)
+	fenetre = Fenetre(game)
+	ui = Ui_MainWindow() # classe cree par QtDesigner
+	ui.setupUi(fenetre)
 	    
 	def timeout():
-		print("DEBUG timeout")
+		# "loop" du jeu
+		# print("DEBUG timeout") #debug
 		game.update()
-		area.draw()
+		fenetre.update()
 
 	timer = QTimer()
 	timer.timeout.connect(timeout)
 	timer.start(100)
-
-sys.exit(app.exec_())
+	
+	sys.exit(app.exec_())
