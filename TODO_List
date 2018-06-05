@@ -14,15 +14,22 @@ DERNIERE MAJ:
         
   -Affichage des objets (méthode draw(self) dans class objet)
   -Area(Zone d'affichage) 
+  
+  -Interface
 ///////////////////////////////////////////////////////////////////////
 
 A FAIRE:
+
+Mode "evaluation"
+Mode "training"
 
 :::::::::::::::::::::::::::::::Pour le JEU:::::::::::::::::::::::::::::::::::::::
               
               Création de ressources
               Rotation des images
-              
+              fonction play / pause
+              fonction reset
+              fonction update
 
 
 
