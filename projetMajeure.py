@@ -13,15 +13,17 @@ from PyQt5.QtCore import Qt, QTimer
 from interface import *
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
-import numpy as np
+import numpy as 
+import random as rd
 import math
 PV_INITIAL = 3
 DAMAGE = 1
 RESOURCE_VALUE = 50
 VITESSE = 10
+
 #team = 0 => ressource et block
-#team = 1 => agent et tir (equipe bleu)
-#team = 2 => agent et tir (equipe rouge)
+#team = 1 => agent et tir (équipe bleu)
+#team = 2 => agent et tir (équipe rouge)
 
 #Action possible
 STOP = 0
@@ -30,12 +32,25 @@ TRIGO = 2
 HORAIRE = 3
 SHOOT = 4
 BUILD = 5
+dr = np.pi/30
+
+#TYPE
+AGENT = 1
+TIR = 2
+RESOURCE = 0
 
 ACTION = [STOP,MOVE,TRIGO,HORAIRE,SHOOT,BUILD]
-
+#TRAINING
+N_EPISODE = 100
+N_STEP = 10
 
 H = 256
 W = 256
+
+N_STATE = len([0:np.sqrt(H*H+W*W):])
+q_table = dict()
+eps = 0.1
+
 
 class Objet:
 # classe pour tout les object qui sont dans l'environnement
@@ -94,12 +109,12 @@ class Agent(Objet):
 			pass
 		
 		if (current_action == MOVE):
-			self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains deplacement
+			self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains dépacment
 			self.dx = int(round(VITESSE*cos(agent.angle)))
 
 		if (current_action == TRIGO):
 			self.angle = angle + dr
-		if (current_action == HORAIRE):
+		if (current_action == HORAIRE)
 			self.angle = angle - dr
 		
 		if(current_action == SHOOT):
@@ -119,7 +134,7 @@ class Tir(Objet):
 # classe pour les tirs
 
 	def __init__(self,agent):
-		self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains deplacement
+		self.dy =  int(round(VITESSE*sin(agent.angle))) #maj des prochains dépacment
 		self.dx = int(round(VITESSE*cos(agent.angle)))
 		Objet.__init__(self,agent.x,agent.y,dx,dy,agent.team,agent.angle);
 		self.dmg = DAMAGE
@@ -142,9 +157,9 @@ class Resource(Objet):
 
 
 
-#grid_area = np.zeros(H,W)
-#for i in range(len(objets)):
-#	grid_area[objets.x][objets.y] = objet.type
+grid_area = np.zeros(H,W)
+for i in range(len(objets)):
+	grid_area[objets.x][objets.y] = objet.type
 
 
 
@@ -152,36 +167,119 @@ class Resource(Objet):
 
 class State():
 
-	def __init__(self,agent,objets):
+	def_ini_(self,agent,objets):
 		for i in objets:
-			if (i.type == 1): #AGENT DE LA MEME EQUIPE
+			if (i.type == 1:) #AGENT DE LA MEME EQUIPE
 				if (i.team == agent.team):
 					self.table_angle_ally.append(agent.angle(i))
 					self.table_dist_ally.append(agent.distance(i))
 				else:
 					self.table_angle_ennemy.append(agent.angle(i))
 					self.table_dist_ennemy.append(agent.distance(i))
-			if (i.type == 2): #TIR
+
+			if (i.type == 2:) #TIR
 				self.table_angle_tir.append(agent.angle(i))
 				self.table_dist_tir.append(agent.distance(i))
-			if (i.type == 0): #RESOURCE
-				self.table_angle_tir.append(agent.angle(i))
-				self.table_dist_tir.append(agent.distance(i))
-#			if (i.type == 3):#BLOCK
-#				table_angle_tir.append(agent.angle(i))
-#				table_dist_tir.append(agent.distance(i))
-		self.distance_nearest_ennemy = min(self.table_dist_ennemy)
-		self.angle_nearest_ennemy = self.table_angle_ennemy(self.table_dist_ennemy.index(self.distance_nearest_ennemy))
+
+			if (i.type == 0:) #RESOURCE
+				self.table_angle_resource.append(agent.angle(i))
+				self.table_dist_resource.append(agent.distance(i))
+"""
+			if (i.type == 3)#BLOCK
+				table_angle_tir.append(agent.angle(i))
+				table_dist_tir.append(agent.distance(i))
+
+"""
+		#STATE DEFINITION:
+		#position ennemi le plus proche
+		self.disance_nearest_ennemy = np.min(self.table_dist_ennemy)
+		self.angle_nearest_ennemy = self.table_angle_ennemy(self.table_dist_ennemy.index(self.disance_nearest_ennemy))
+		#position moyenne allié
+		self.mean_disante_ally = np.mean(self.table_dist_ennemy)
+		self.mean_angle_ally = np.mean(self.table_angle_ennemy)
+		#position ressource la plus proche
+		self.distance_nearest_resource = np.min(self.table_dist_resource)
+		self.angle_nearest_resource = self.table_angle_resource(self.table_dist_resource.index(self.distance_nearest_resource))
+		#position tir le plus proche
+		self.disance_nearest_tir = np.min(self.table_dist_tir)
+		self.angle_nearest_tir = self.table_angle_tir(self.table_dist_tir.index(self.disance_nearest_tir))
 
 		
+
+
+
+
+def q(state, action = None):
+	if state not in q_table:
+		q_table = np.zeros(len(ACTION))
+
+	if action is None:
+		return q_table[state]
+
+	return q_table[state][action]
+
+
+
+def markov_process(state):
+	if (rd.uniform(0,1) < eps): #prob eps de d'exploorer
+		return rd.choice(ACTION)
+	else:
+		return np.argmax(q(state)) 
+
+def calcul_reward(current_state, action):
+	next_state = State(agent,objets)
+
+	if ()
+
+
+
+
+
+
+
+#entrainement de tout les agents
+def train():
+	list_state = [] 
+	list_action = []
+	list_total_reward = np.zeros(1,len(list_agent))
+
+	for i in range(N_EPISODE):
+		del list_state[:]
+		for k in range(len(list_agent)):
+			list_state.append(State(list_agent[k],objets)); #Stock les etats de chaque agent
+
+			for j in range(N_STEP):
+				for m in range(len(list_state)): # pour chaque etat d'agent choisi une action associé grace a la Q_table
+					list_action.append(markov_process(list_state[m]))
+				#FAIRE ACTION CHOISI POUR CHAQUE AGENT (UPDATEGAME)
+				 
+				 ############A FAIRE######################
+				
+
+				#CALCUL Reward R pour chaque agent
+				for m in range(len(list_agent)):
+
+					list_total_reward[m] = list_total_reward[m] + calcul_reward(list_state[m],list_action[m])
+
+
+
+				#CREATION NOUVEL ETAT POUR CHAQUE AGENT
+
+
+
+
+
+
+
 
 
 
 class Game():
 	#class pour gerer le jeu
 	objectsList = []
+	list_agent = []
 	def __init__(self):
-		pass #TODO
+		list_agent.append(Agent())
 	def playPause(self):
 		print ("DEBUG play pause")
 		pass #TODO
@@ -213,7 +311,7 @@ if __name__ == '__main__':
 	ui.setupUi(fenetre)
 	    
 	def timeout():
-		# "loop" du jeu
+		# "loop" du jeu
 		# print("DEBUG timeout") #debug
 		game.update()
 		fenetre.update()
@@ -222,4 +320,4 @@ if __name__ == '__main__':
 	timer.timeout.connect(timeout)
 	timer.start(100)
 	
-	sys.exit(app.exec_())
+sys.exit(app.exec_())
