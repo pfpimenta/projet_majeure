@@ -400,17 +400,21 @@ class Game():
 	window_nombre_depisodes = 0
 	def __init__(self):
 		self.creer_agents()
-	def creer_agents():
+
+	def creer_agents(self):
+		# TODO : refaire
 		A1 = Agent(0, 0, 0, 0, 0, 1)
 		A2 = Agent(0, 0, 0, 0, 45, 2)
 		self.list_agent.append(A1)
 		self.list_agent.append(A2)
 		self.objectsList.append(A1)
 		self.objectsList.append(A2)
+
 	def playPause(self):
 		print ("DEBUG play pause")
 		self.isPlay = not(self.isPlay) # toggle flag
 		pass #TODO ?
+
 	def reset(self):
 		print ("DEBUG reset") # DEBUG
 		self.isPlay = False # stop the game
