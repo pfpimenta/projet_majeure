@@ -196,7 +196,9 @@ class Objet:
 class Agent(Objet):
 # classe pour les agents
 	current_action = 0
-	def __init__(self,x=0,y=0, dx=0, dy=0, angle = 0, team = 0):
+	def __init__(self,x=0,y=0, angle = 0, team = 0):
+		dx = 0
+		dy = 0
 		Objet.__init__(self,x,y,dx,dy,angle,team, TYPE_AGENT);
 		self.pv = AGENT_PV_INITIAL
 
@@ -269,8 +271,10 @@ class Block(Objet):
 		
 class Resource(Objet):
 # classe pour les rescources
-	def __init__(self,x=0,y=0, dx=0, dy=0):
-		Objet.__init__(self,x,y,0,0,0,0,TYPE_RESOURCE);
+	def __init__(self,x=0,y=0):
+		dx = 0
+		dy = 0
+		Objet.__init__(self,x,y,dx,dy,0,0,TYPE_RESOURCE);
 		self.value =  RESOURCE_VALUE
 
 
@@ -460,13 +464,29 @@ class Game():
 		self.creer_agents()
 
 	def creer_agents(self):
+		for i in range(self.current_nb_agents_E1):
+			x = rd.randint(0,100-AGENT_WIDTH)
+			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
+			angle = rd.randint(0,360)
+			a = Agent(x,y, angle, 1)
+			self.list_agent.append(a)
+			self.objectsList.append(a)
+		for i in range(self.current_nb_agents_E2):
+			x = rd.randint(GAME_AREA_WIDTH-100,GAME_AREA_WIDTH-AGENT_WIDTH)
+			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
+			angle = rd.randint(0,360)
+			a = Agent(x,y, angle, 2)
+			self.list_agent.append(a)
+			self.objectsList.append(a)
 		# TODO : refaire
+		"""
 		A1 = Agent(100, 100, 0, 0, 135, 1)
 		A2 = Agent(200, 200, 0, 0, -45, 2)
 		self.list_agent.append(A1)
 		self.list_agent.append(A2)
 		self.objectsList.append(A1)
 		self.objectsList.append(A2)
+		"""
 
 	def playPause(self):
 		print ("DEBUG play pause")
