@@ -18,13 +18,16 @@ import random as rd
 import math
 PV_INITIAL = 3
 DAMAGE = 1
-RESOURCE_VALUE = 50
+RESOURCE_REWARD = 400
 VITESSE = 10
-
+gamma = 0.5
 #team = 0 => ressource et block
 #team = 1 => agent et tir (équipe bleu)
 #team = 2 => agent et tir (équipe rouge)
-
+IMAGEPATH_404 = "Images/ImageNotFound.png"
+IMAGEPATH_AGENT_BLEU = "Images/AgentBleu.png"
+IMAGEPATH_AGENT_ROUGE = "Images/AgentRouge.png"
+IMAGEPATH_AGENT_NEUTRE = "Images/AgentNeutre.png"
 #Action possible
 STOP = 0
 MOVE = 1
@@ -47,7 +50,7 @@ N_STEP = 10
 H = 256
 W = 256
 
-#N_STATE = len([0:np.sqrt(H*H+W*W)])
+#N_STATE = len([0:np.sqrt(H*H+W*W):])
 q_table = dict()
 eps = 0.1
 
@@ -63,15 +66,39 @@ class Objet:
 	box_y = 5
 	team = 0
 	type_obj = 0
-
+	pixmap = None
 	def __init__(self,x=0,y=0, dx=0, dy=0 ,angle = 0, team = 0,type_obj = 0):
 		self.x = x;
 		self.y = y;
 		self.dx = dx;
 		self.dy = dy;
 		self.angle = angle
-		self.team = team;
-	
+		self.team = team
+		self.type_obj = type_obj
+		pixmapPath = IMAGEPATH_404
+		
+		if type_obj == 0:
+			#ressource
+			pass
+		elif type_obj == 1:
+			#L'objet est un agent
+			if team == 1:
+				#Agent bleu
+				pixmapPath = IMAGEPATH_AGENT_BLEU
+			elif team == 2:
+				#Agent rouge
+				pixmapPath = IMAGEPATH_AGENT_ROUGE
+			else:
+				#Agent neutre
+				pixmapPath = IMAGEPATH_AGENT_NEUTRE
+
+		elif type_obj == 2:
+			#l'objet est un projectile
+			pass
+
+		self.pixmap = QPixmap()
+		self.pixmap.load(pixmapPath)	
+			
 	def move(self):
 	# bouger l'agent et tir d'accord avec sa vitesse
 		self.x = max(0,self.x + self.dx)
@@ -86,9 +113,9 @@ class Objet:
 			ret = True
 		return ret
 			
-	def draw(self):
+	def draw(self, qp):
 		#affichage de l'objet
-		pass #TODO
+		qp.drawPixmap(self.x,self.y, 64, 64, self.pixmap); #peut-être besoin de W et H
 		
 
 		
@@ -154,10 +181,15 @@ class Resource(Objet):
 
 
 
+
+
+
+
 class State():
 
-	def __init__(self,agent,objets):
-		for i in objets:
+	def __init__(self,agent,objectsList):
+		self.total_pv_ennemy = 0
+		for i in objectsList:
 			if (i.type == 1): #AGENT DE LA MEME EQUIPE
 				if (i.team == agent.team):
 					self.table_angle_ally.append(agent.angle(i))
@@ -165,10 +197,13 @@ class State():
 				else:
 					self.table_angle_ennemy.append(agent.angle(i))
 					self.table_dist_ennemy.append(agent.distance(i))
-
+					self.total_pv_ennemy = self.total_pv_ennemy + i.pv
 			if (i.type == 2): #TIR
-				self.table_angle_tir.append(agent.angle(i))
-				self.table_dist_tir.append(agent.distance(i))
+				if(i.type == agent.team):
+					pass
+				else:
+					self.table_angle_tir.append(agent.angle(i))
+					self.table_dist_tir.append(agent.distance(i))
 
 			if (i.type == 0): #RESOURCE
 				self.table_angle_resource.append(agent.angle(i))
@@ -186,7 +221,8 @@ class State():
 		#position tir le plus proche
 		self.disance_nearest_tir = np.min(self.table_dist_tir)
 		self.angle_nearest_tir = self.table_angle_tir(self.table_dist_tir.index(self.disance_nearest_tir))
-
+		#Point de vie
+		self.pv = agent.pv
 		
 
 
@@ -210,11 +246,27 @@ def markov_process(state):
 		return np.argmax(q(state)) 
 
 def calcul_reward(current_state, action):
-	next_state = State(agent,objets)
+	next_state = State(agent,Game.objectsList)
+	reward = 0
+	#si il se rapproche des ressources
+	if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
+		reward  = reward + 10
+	else:
+		reward = reward - 10
+	#si un tir ennemy se rapproche de lui
+	if (next_state.disance_nearest_tir < current_state.distance_nearest_tir):
+		reward = reward - 2
+	#si perd pV
+	if (next_state.pv < current_state.pv):
+		reward = reward - 100
+	#si orienté plus justement face a ressource
+	if(next_state.angle_nearest_resource < current_state.angle_nearest_resource):
+		reward = reward + 2
+	# COMPARER les totals rewards de chaque équipe	(a faire)
+	if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
+		reward = reward + 100
 
-
-
-
+	return reward , next_state
 
 
 
@@ -228,32 +280,24 @@ def train():
 	for i in range(N_EPISODE):
 		del list_state[:]
 		for k in range(len(list_agent)):
-			list_state.append(State(list_agent[k],objets)); #Stock les etats de chaque agent
+			list_state.append(State(list_agent[k],Game.objectsList)); #Stock les etats de chaque agent
 
 			for j in range(N_STEP):
 				for m in range(len(list_state)): # pour chaque etat d'agent choisi une action associé grace a la Q_table
 					list_action.append(markov_process(list_state[m]))
 				#FAIRE ACTION CHOISI POUR CHAQUE AGENT (UPDATEGAME)
-				 
-				 ############A FAIRE######################
+					list_agent[m].current_action = list_action[m] #met a jour l'action de l'agent dans la classe
+				############A FAIRE######################
 				
 
 				#CALCUL Reward R pour chaque agent
 				for m in range(len(list_agent)):
-
-					list_total_reward[m] = list_total_reward[m] + calcul_reward(list_state[m],list_action[m])
-
-
-
-				#CREATION NOUVEL ETAT POUR CHAQUE AGENT
-
-
-
-
-
-
-
-
+					reward , next_state =  calcul_reward(list_state[m],list_action[m])
+					list_total_reward[m] = list_total_reward[m] + reward
+					#CREATION NOUVEL ETAT POUR CHAQUE AGENT
+					q(list_state[m])[list_action[m]] = q(list_state[m] , list_action[m]) + current_learning_rate * (reward + gamma * np.max(q(next_state)) - q(list_state[m],list_action[m]))
+					list_state[m] = next_state
+					print("Episode: "+ i +"Agent: "+ m +"  Total reward = "+ list_total_reward[m])
 
 
 class Game():
@@ -280,7 +324,9 @@ class Game():
 	current_nombre_depisodes = 0
 	window_nombre_depisodes = 0
 	def __init__(self):
-		self.list_agent.append(Agent())
+		A1 = Agent()
+		self.list_agent.append(A1)
+		self.objectsList.append(A1)
 	def playPause(self):
 		print ("DEBUG play pause")
 		pass #TODO
@@ -316,8 +362,6 @@ class Game():
 
 
 
-
-
 		
 # main
 if __name__ == '__main__':
@@ -332,7 +376,7 @@ if __name__ == '__main__':
 		# "loop" du jeu
 		# print("DEBUG timeout") #debug
 		game.update()
-		fenetre.update()
+		ui.gameWidget.update()
 
 	timer = QTimer()
 	timer.timeout.connect(timeout)

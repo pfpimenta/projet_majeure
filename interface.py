@@ -14,6 +14,8 @@ from PyQt5.QtCore import Qt, QTimer
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 
+IMAGEPATH_BACKGROUND = "Images/background.jpg"
+
 class Ui_MainWindow(object):
 	# classe cree par QtDesigner
 	MainWindow = None # ajoutee
@@ -154,7 +156,9 @@ class gameWidget(QWidget):
 		self.game = game
 
 		self.background_pm = QPixmap()
-		self.brush = QBrush(Qt.SolidPattern)
+		self.background_pm.load(IMAGEPATH_BACKGROUND)
+		#self.background_pm = QPixmap()
+		#self.brush = QBrush(Qt.SolidPattern)
 	
 		self.setGeometry(0, 0, 100, 100)
 		self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -163,12 +167,13 @@ class gameWidget(QWidget):
 
 	def paintEvent(self, event):
 		self.qp.begin(self)
-		self.qp.setBrush(self.brush)
+		#self.qp.setBrush(self.brush)
 		#afficher le background
-		self.qp.drawRect(0, 0, 10000, 10000)
+		#self.qp.drawRect(0, 0, 10000, 10000)
+		self.qp.drawPixmap(0,0,500,500,self.background_pm)
 		#afficher les objets
 		for objet in self.game.objectsList:
-			objet.draw(qp)
+			objet.draw(self.qp)
 		# ___
 		self.qp.end()
 
