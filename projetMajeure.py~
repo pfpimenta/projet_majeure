@@ -7,15 +7,25 @@
 # TIZON, Nicolas
 
 import sys
+import time
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
 from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
 from PyQt5.QtCore import Qt, QTimer
 from interface import *
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 500
 import numpy as np
 import random as rd
 import math
+
+# WINDOW / GAME_AREA
+## Modifié pour commencer avec WINDOW_, GAME_AREA_
+# ATTENTION : Ces variables sont également définies dans projetMajeure.py.
+# Pensez à les modifier là-bas aussi ou à faire une variable partagée
+
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 500
+
+GAME_AREA_WIDTH = 500
+GAME_AREA_HEIGHT = 500
 
 # AGENT
 ## Modifié pour commencer avec AGENT_
@@ -90,8 +100,8 @@ class Objet:
 	dx = 0 # vitesses
 	dy = 0
 	angle = 0
-	box_x = 5 #collision boxes ( largeur et longeur de l'objet)
-	box_y = 5
+	width = 5 #collision boxes ( largeur et longeur de l'objet)
+	height = 5
 	team = 0
 	type_obj = 0
 	pixmap = None
@@ -104,12 +114,18 @@ class Objet:
 		self.team = team
 		self.type_obj = type_obj
 		pixmapPath = IMAGEPATH_404
+		self.width = 32
+		self.height = 32
 		
 		if type_obj == TYPE_RESOURCE:
 			#ressource
+			self.width = RESOURCE_WIDTH
+			self.height = RESOURCE_HEIGHT
 			pass
 		elif type_obj == TYPE_AGENT:
 			#L'objet est un agent
+			self.width = AGENT_WIDTH
+			self.height = AGENT_HEIGHT
 			if team == TEAM_BLUE:
 				#Agent bleu
 				pixmapPath = IMAGEPATH_AGENT_BLEU
@@ -121,6 +137,8 @@ class Objet:
 				pixmapPath = IMAGEPATH_AGENT_NEUTRE
 
 		elif type_obj == TYPE_PROJECTILE:
+			self.width = PROJECTILE_WIDTH
+			self.height = PROJECTILE_HEIGHT
 			#l'objet est un projectile
 			pass
 
@@ -129,20 +147,23 @@ class Objet:
 			
 	def move(self):
 	# bouger l'agent et tir d'accord avec sa vitesse
+		#self.x = min(max(0,self.x + self.dx), GAME_AREA_WIDTH - self.pixmap.width())
+		#self.y = min(max(0,self.y + self.dy), GAME_AREA_HEIGHT - self.pixmap.height())
 		self.x = max(0,self.x + self.dx)
 		self.y = max(0,self.y + self.dy)
+		if(self.x + self.width  >= GAME_AREA_WIDTH):
+			self.x = GAME_AREA_WIDTH - self.width
+		if(self.y + self.height  >=GAME_AREA_HEIGHT):
+			self.y = GAME_AREA_HEIGHT - self.height
 	
 	def collision(self,obj ):
 	#verifie la collision entre les objets
 		ret = False
-		if (self.x + self.box_x < obj.x - obj.box_x and self.x - self.box_x > obj.x + obj.box_x and self.y + self.box_y < obj.y - obj.box_y and self.y - self.box_y > obj.y + obj.box_y):
+		if (self.x + self.width < obj.x - obj.width and self.x - self.width > obj.x + obj.width and self.y + self.height < obj.y - obj.height and self.y - self.height > obj.y + obj.height):
     			ret = False
 		else:
 			ret = True
-		if(self.x + self.box_x  >= 500):
-			self.x = 500 - self.box_x
-		if(self.y + self.box_y  >=500):
-			self.y = 500 - self.box_y
+
 			
 		return ret
 			
@@ -190,8 +211,10 @@ class Agent(Objet):
 			self.dy = 0
 			self.dx = 0
 		if (self.current_action == ACTION_MOVE):
-			self.dx =  int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle)))) #maj des prochains dépacment
-			self.dy = int(round(AGENT_VITESSE*np.cos(np.deg2rad(self.angle))))
+			#self.dy =  int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle)))) #maj des prochains dépacment
+			#self.dx = int(round(AGENT_VITESSE*np.cos(np.deg2rad(self.angle))))
+			self.dy =  int(round(-AGENT_VITESSE*np.cos(np.deg2rad(self.angle)))) #maj des prochains dépacment
+			self.dx = int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle))))
 		if (self.current_action == ACTION_TRIGO):
 			self.angle = self.angle - AGENT_DR
 		if (self.current_action == ACTION_HORAIRE):
@@ -438,8 +461,8 @@ class Game():
 
 	def creer_agents(self):
 		# TODO : refaire
-		A1 = Agent(0, 0, 0, 0, 0, 1)
-		A2 = Agent(0, 0, 0, 0, 45, 2)
+		A1 = Agent(100, 100, 0, 0, 135, 1)
+		A2 = Agent(200, 200, 0, 0, -45, 2)
 		self.list_agent.append(A1)
 		self.list_agent.append(A2)
 		self.objectsList.append(A1)
@@ -502,7 +525,6 @@ if __name__ == '__main__':
 	fenetre = Fenetre(game)
 	ui = Ui_MainWindow() # classe cree par QtDesigner
 	ui.setupUi(fenetre)
-	
 	def timeout():
 		if(game.isPlay):
 			# "loop" du jeu
@@ -511,6 +533,9 @@ if __name__ == '__main__':
 			if((game.gameCounter%game.current_time_modulo)==0):
 				ui.gameWidget.update()
 		game.gameCounter += 1
+		#timer.stop()
+		timePeriod = game.current_time_period
+		timer.start(timePeriod)
 
 	timer = QTimer()
 	timer.timeout.connect(timeout)

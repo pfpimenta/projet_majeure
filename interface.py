@@ -14,6 +14,11 @@ from PyQt5.QtCore import Qt, QTimer
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 
+# ATTENTION : Ces variables sont également définies dans projetMajeure.py.
+# Pensez à les modifier là-bas aussi ou à faire une variable partagée
+GAME_AREA_WIDTH = 500
+GAME_AREA_HEIGHT = 500
+
 TIME_PERIOD = 100 # miliseconds entre frames
 
 IMAGEPATH_BACKGROUND = "Images/background.jpg"
@@ -167,7 +172,8 @@ class gameWidget(QWidget):
 		#self.brush = QBrush(Qt.SolidPattern)
 	
 		self.setGeometry(0, 0, 100, 100)
-		self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+		#self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+		self.resize(GAME_AREA_WIDTH, GAME_AREA_HEIGHT)
 		self.move(300, 300)
 		self.show()
 
@@ -176,7 +182,7 @@ class gameWidget(QWidget):
 		#self.qp.setBrush(self.brush)
 		#afficher le background
 		#self.qp.drawRect(0, 0, 10000, 10000)
-		self.qp.drawPixmap(0,0,500,500,self.background_pm)
+		self.qp.drawPixmap(0,0, GAME_AREA_WIDTH, GAME_AREA_HEIGHT,self.background_pm)
 		#afficher les objets
 		for objet in self.game.objectsList:
 			objet.draw(self.qp)
