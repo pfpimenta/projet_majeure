@@ -29,12 +29,12 @@ IMAGEPATH_AGENT_BLEU = "Images/AgentBleu.png"
 IMAGEPATH_AGENT_ROUGE = "Images/AgentRouge.png"
 IMAGEPATH_AGENT_NEUTRE = "Images/AgentNeutre.png"
 #Action possible
-STOP = 0
-MOVE = 1
-TRIGO = 2
-HORAIRE = 3
-SHOOT = 4
-BUILD = 5
+ACTION_STOP = 0
+ACTION_MOVE = 1
+ACTION_TRIGO = 2
+ACTION_HORAIRE = 3
+ACTION_SHOOT = 4
+ACTION_BUILD = 5
 dr = np.pi/30
 
 #TYPE
@@ -111,6 +111,11 @@ class Objet:
     			ret = False
 		else:
 			ret = True
+		if(self.x + self.box_x  >= 500):
+			self.x = 500 - self.box_x
+		if(self.y + self.box_y  >=500):
+			self.y = 500 - self.box_y
+
 		return ret
 			
 	def draw(self, qp):
@@ -319,8 +324,8 @@ class Game():
 	# initialisations : 
 	# "current" : la valeur utilisee par le jeu
 	# "window" : la valeur qui l'utilisateur change a la fenettre
-	current_nb_agents_E1 = 0 # equipe 1
-	window_nb_agents_E1 = 0
+	current_nb_agents_E1 = 1 # equipe 1
+	window_nb_agents_E1 = 1
 	current_nb_agents_E2 = 0 # equipe 2
 	window_nb_agents_E2 = 0
 	current_resource_spawn_rate = 0
@@ -330,9 +335,9 @@ class Game():
 	current_random_path_prob = 0 # prob de l'exploration de boltzman
 	window_random_path_prob = 0 # prob de l'exploration de boltzman
 	current_time_period = 100 # temps entre frames
-	window_time_period = 0 # temps entre frames
+	window_time_period = 100 # temps entre frames
 	current_time_modulo = 1 # pour afficher a chaque X frames
-	window_time_modulo = 0 # pour afficher a chaque X frames
+	window_time_modulo = 1 # pour afficher a chaque X frames
 	current_nombre_depisodes = 0
 	window_nombre_depisodes = 0
 	def __init__(self):
