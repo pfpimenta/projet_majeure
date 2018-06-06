@@ -325,16 +325,24 @@ class Game():
 	current_nombre_depisodes = 0
 	window_nombre_depisodes = 0
 	def __init__(self):
+		self.creer_agents()
+
+	def creer_agents(self):
+		# creer des agents pour le jeu
 		A1 = Agent(10, 10, 12, 5)
 		self.list_agent.append(A1)
 		self.objectsList.append(A1)
+
 	def playPause(self):
 		print ("DEBUG play pause")
 		self.isPlay = not(self.isPlay) # toggle flag
 		pass #TODO
+
 	def reset(self):
 		print ("DEBUG reset") # DEBUG
 		self.isPlay = False # stop the game
+		self.objectsList = [] # effacer tous les objets
+		self.list_agent = []
 		# actualiser les valeurs
 		self.current_nb_agents_E1 = self.window_nb_agents_E1
 		self.current_nb_agents_E2 = self.window_nb_agents_E2
@@ -354,6 +362,8 @@ class Game():
 		print("time_modulo : " + str(self.current_time_modulo))
 		print("nombre_depisodes : " + str(self.current_nombre_depisodes))
 		"""
+		self.creer_agents()
+		ui.gameWidget.update()
 		pass #TODO
 	def update(self):
 	# appellee a chaque frame
