@@ -595,8 +595,10 @@ class Game():
 		# choix d'action des agents
 		for agent in self.list_agent:
 			state = State(agent, self.objectsList)
+			action = markov_process(state)
+			agent.current_action = action
 			agent.execute_action(state)
-		# mouvement des agents et tires
+		# mouvement des agents et tirs
 		for objet in self.objectsList:
 			objet.move()
 		# Ajoute des ressources
