@@ -325,7 +325,7 @@ class Game():
 	current_nombre_depisodes = 0
 	window_nombre_depisodes = 0
 	def __init__(self):
-		A1 = Agent(10, 10, 12, 5)
+		A1 = Agent()
 		self.list_agent.append(A1)
 		self.objectsList.append(A1)
 	def playPause(self):
