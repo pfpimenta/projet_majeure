@@ -138,6 +138,11 @@ class Objet:
     			ret = False
 		else:
 			ret = True
+		if(self.x + self.box_x  >= 500):
+			self.x = 500 - self.box_x
+		if(self.y + self.box_y  >=500):
+			self.y = 500 - self.box_y
+			
 		return ret
 			
 	def draw(self, qp):
@@ -210,7 +215,7 @@ class Tir(Objet):
 	def __init__(self,agent):
 		self.dy =  int(round(PROJECTILE_VITESSE*sin(agent.angle))) #maj des prochains dépacment
 		self.dx = int(round(PROJECTILE_VITESSE*cos(agent.angle)))
-		Objet.__init__(self,agent.x,agent.y,dx,dy,agent.team,agent.angle);
+		Objet.__init__(self,agent.x,agent.y,dx,dy,agent.team,agent.angle, 0, TYPE_TIR);
 		self.dmg = PROJECTILE_DAMAGE
 
 
@@ -223,7 +228,7 @@ class Block(Objet):
 class Resource(Objet):
 # classe pour les rescources
 	def __init__(self,x=0,y=0, dx=0, dy=0):
-		Objet.__init__(self,x,y);
+		Objet.__init__(self,x,y,0,0,0,0,TYPE_RESOURCE);
 		self.value =  RESOURCE_VALUE
 
 
@@ -233,7 +238,14 @@ class Resource(Objet):
 
 
 class State():
-
+	table_angle_ally = []
+	table_dist_ally = []
+	table_angle_ennemy = []
+	table_dist_ennemy = []
+	table_angle_tir = []
+	table_dist_tir = []
+	table_angle_resource = []
+	table_dist_resource = []
 	def __init__(self,agent,objectsList):
 		self.total_pv_ennemy = 0
 		for i in objectsList:
@@ -365,11 +377,13 @@ class Game():
 	#class pour gerer le jeu
 	objectsList = []
 	list_agent = []
+	isPlay = False # flag : False = pause; True = play
+	gameCounter = 1 # clock pour time modulo
 	# initialisations : 
 	# "current" : la valeur utilisee par le jeu
 	# "window" : la valeur qui l'utilisateur change a la fenettre
-	current_nb_agents_E1 = 0 # equipe 1
-	window_nb_agents_E1 = 0
+	current_nb_agents_E1 = 1 # equipe 1
+	window_nb_agents_E1 = 1
 	current_nb_agents_E2 = 0 # equipe 2
 	window_nb_agents_E2 = 0
 	current_resource_spawn_rate = 0
@@ -378,14 +392,15 @@ class Game():
 	window_learning_rate = 0
 	current_random_path_prob = 0 # prob de l'exploration de boltzman
 	window_random_path_prob = 0 # prob de l'exploration de boltzman
-	current_time_period = 0 # temps entre frames
-	window_time_period = 0 # temps entre frames
-	current_time_modulo = 0 # pour afficher a chaque X frames
-	window_time_modulo = 0 # pour afficher a chaque X frames
+	current_time_period = 100 # temps entre frames
+	window_time_period = 100 # temps entre frames
+	current_time_modulo = 1 # pour afficher a chaque X frames
+	window_time_modulo = 1 # pour afficher a chaque X frames
 	current_nombre_depisodes = 0
 	window_nombre_depisodes = 0
 	def __init__(self):
-		## Modifié pour inclure deux agents de test
+		self.creer_agents()
+	def creer_agents():
 		A1 = Agent(0, 0, 0, 0, 0, 1)
 		A2 = Agent(0, 0, 0, 0, 45, 2)
 		self.list_agent.append(A1)
@@ -394,9 +409,13 @@ class Game():
 		self.objectsList.append(A2)
 	def playPause(self):
 		print ("DEBUG play pause")
-		pass #TODO
+		self.isPlay = not(self.isPlay) # toggle flag
+		pass #TODO ?
 	def reset(self):
 		print ("DEBUG reset") # DEBUG
+		self.isPlay = False # stop the game
+		self.objectsList = [] # effacer tous les objets
+		self.list_agent = []
 		# actualiser les valeurs
 		self.current_nb_agents_E1 = self.window_nb_agents_E1
 		self.current_nb_agents_E2 = self.window_nb_agents_E2
@@ -406,6 +425,7 @@ class Game():
 		self.current_time_period = self.window_time_period
 		self.current_time_modulo = self.window_time_modulo
 		self.current_nombre_depisodes = self.window_nombre_depisodes
+		"""
 		print ("nb_agents_E1: " + str(self.current_nb_agents_E1))
 		print("nb_agents_E2 : " + str(self.current_nb_agents_E2))
 		print("resource_spawn_rate " + str(self.current_resource_spawn_rate))
@@ -414,14 +434,17 @@ class Game():
 		print("time_period " + str(self.current_time_period))
 		print("time_modulo : " + str(self.current_time_modulo))
 		print("nombre_depisodes : " + str(self.current_nombre_depisodes))
-		pass #TODO
+		"""
+		self.creer_agents()
+		ui.gameWidget.update()
+		pass #TODO ?
 	def update(self):
 		# appellee a chaque frame
 		# mouvement des agents et tires
-		# collision
 		for objet in self.objectsList:
 			objet.move()
-	pass #TODO
+		# collision
+		pass #TODO
 
 
 
@@ -436,15 +459,19 @@ if __name__ == '__main__':
 	fenetre = Fenetre(game)
 	ui = Ui_MainWindow() # classe cree par QtDesigner
 	ui.setupUi(fenetre)
-	    
+	
 	def timeout():
-		# "loop" du jeu
-		# print("DEBUG timeout") #debug
-		game.update()
-		ui.gameWidget.update()
+		if(game.isPlay):
+			# "loop" du jeu
+			# print("DEBUG timeout") #debug
+			game.update()
+			if((game.gameCounter%game.current_time_modulo)==0):
+				ui.gameWidget.update()
+		game.gameCounter += 1
 
 	timer = QTimer()
 	timer.timeout.connect(timeout)
-	timer.start(100)
+	timePeriod = ui.SpinBoxTimePeriod.value()
+	timer.start(timePeriod)
 	
 sys.exit(app.exec_())
