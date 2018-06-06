@@ -20,10 +20,11 @@ import math
 # AGENT
 ## Modifié pour commencer avec AGENT_
 AGENT_PV_INITIAL = 3
-AGENT_WIDTH = 64
-AGENT_HEIGHT = 64
+AGENT_WIDTH = 32
+AGENT_HEIGHT = 32
 AGENT_VITESSE = 10
-AGENT_DR = np.pi/30
+#AGENT_DR = np.pi/30
+AGENT_DR = 5 #en degrés
 
 # PROJECTILE
 ## Modifié pour commencer avec PROJECTILE_
@@ -166,7 +167,7 @@ class Objet:
 		x1 = (self.x + w2)*np.cos(r) + (self.y + h2)*np.sin(r) - w2
 		y1 = -(self.x + w2)*np.sin(r) + (self.y + h2)*np.cos(r) - h2
 		qp.rotate(self.angle)
-		qp.drawPixmap(x1,y1, 64, 64, self.pixmap); #peut-être besoin de W et H
+		qp.drawPixmap(x1,y1, w, h, self.pixmap); #peut-être besoin de W et H
 		qp.rotate(-self.angle)
 		
 
@@ -179,31 +180,49 @@ class Agent(Objet):
 		self.pv = AGENT_PV_INITIAL
 
 	def shoot(self):
-		Tir(agent)
+		#Tir(self)
+		pass # TODO
 		
-	def action(self, state):
-	# prendre une action
-		
-		if (current_action == ACTION_STOP):
-			pass
-		
-		if (current_action == ACTION_MOVE):
-			self.dy =  int(round(AGENT_VITESSE*sin(agent.angle))) #maj des prochains dépacment
-			self.dx = int(round(AGENT_VITESSE*cos(agent.angle)))
+	def execute_action(self, state):
+	# faire une action
+		self.current_action = self.take_action(state) # choisir l'action
+		if (self.current_action == ACTION_STOP):
+			self.dy = 0
+			self.dx = 0
+		if (self.current_action == ACTION_MOVE):
+			self.dx =  int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle)))) #maj des prochains dépacment
+			self.dy = int(round(AGENT_VITESSE*np.cos(np.deg2rad(self.angle))))
+		if (self.current_action == ACTION_TRIGO):
+			self.angle = self.angle - AGENT_DR
+		if (self.current_action == ACTION_HORAIRE):
+			self.angle = self.angle + AGENT_DR
+		if(self.current_action == ACTION_SHOOT):
+			self.shoot()
 
-		if (current_action == ACTION_TRIGO):
-			self.angle = angle + AGENT_DR
-		if (current_action == ACTION_HORAIRE):
-			self.angle = angle - AGENT_DR
+	def take_action(self, state):
+	# choisir une action
+		# TODO
+		# comportement temporaire : 
+		rdm_prob = rd.uniform(0,1)
+		if (rdm_prob < 0.5): # 50%
+			return ACTION_MOVE
+		elif (rdm_prob < 0.65): #15%
+			return ACTION_TRIGO
+		elif (rdm_prob < 0.80): #15%
+			return ACTION_HORAIRE
+		elif (rdm_prob < 0.90): #10%
+			return ACTION_SHOOT
+		else : #10%
+			return ACTION_STOP
 		
-		if(current_action == ACTION_SHOOT):
-			shoot()
+		
+		
 
-	def distance(self,objet):
+	def distanceWithObj(self,objet):
 		return np.sqrt((objet.x - self.x)*(objet.x - self.x) + (objet.y - self.y)*(objet.y - self.y))
 
-	def angle(self,objet):
-		return math.atan2(objet.y - agent.y , objet.x - agent.x)
+	def angleWithObj(self,objet):
+		return math.atan2(objet.y - self.y , objet.x - self.x)
 
 	def place_block(self):
 	# placer un bloque en face du agent
@@ -249,43 +268,59 @@ class State():
 	def __init__(self,agent,objectsList):
 		self.total_pv_ennemy = 0
 		for i in objectsList:
-			if (i.type == 1): #AGENT DE LA MEME EQUIPE
+			if (i.type_obj == 1): #AGENT DE LA MEME EQUIPE
 				if (i.team == agent.team):
-					self.table_angle_ally.append(agent.angle(i))
-					self.table_dist_ally.append(agent.distance(i))
+					self.table_angle_ally.append(agent.angleWithObj(i))
+					self.table_dist_ally.append(agent.distanceWithObj(i))
 				else:
-					self.table_angle_ennemy.append(agent.angle(i))
-					self.table_dist_ennemy.append(agent.distance(i))
+					self.table_angle_ennemy.append(agent.angleWithObj(i))
+					self.table_dist_ennemy.append(agent.distanceWithObj(i))
 					self.total_pv_ennemy = self.total_pv_ennemy + i.pv
-			if (i.type == 2): #TIR
-				if(i.type == agent.team):
+			if (i.type_obj == 2): #TIR
+				if(i.team == agent.team):
 					pass
 				else:
-					self.table_angle_tir.append(agent.angle(i))
-					self.table_dist_tir.append(agent.distance(i))
+					self.table_angle_tir.append(agent.angleWithObj(i))
+					self.table_dist_tir.append(agent.distanceWithObj(i))
 
-			if (i.type == 0): #RESOURCE
-				self.table_angle_resource.append(agent.angle(i))
-				self.table_dist_resource.append(agent.distance(i))
+			if (i.type_obj == 0): #RESOURCE
+				self.table_angle_resource.append(agent.angleWithObj(i))
+				self.table_dist_resource.append(agent.distanceWithObj(i))
 		"""
-			if (i.type == 3)#BLOCK
-				table_angle_tir.append(agent.angle(i))
-				table_dist_tir.append(agent.distance(i))
+			if (i.type_obj == 3)#BLOCK
+				table_angle_tir.append(agent.angleWithObj(i))
+				table_dist_tir.append(agent.distanceWithObj(i))
 
 		"""
 		#STATE DEFINITION:
 		#position ennemi le plus proche
-		self.distance_nearest_ennemy = np.min(self.table_dist_ennemy)
-		self.angle_nearest_ennemy = self.table_angle_ennemy(self.table_dist_ennemy.index(self.distance_nearest_ennemy))
+		if(len(self.table_dist_ennemy) > 0): # s'il y a un ennemy
+			self.distance_nearest_ennemy = min(self.table_dist_ennemy)
+			self.angle_nearest_ennemy = self.table_angle_ennemy[self.table_dist_ennemy.index(self.distance_nearest_ennemy)]
+		else:
+			self.distance_nearest_ennemy = 1000
+			self.angle_nearest_ennemy = 0
 		#position moyenne allié
-		self.mean_distance_ally = np.mean(self.table_dist_ennemy)
-		self.mean_angle_ally = np.mean(self.table_angle_ennemy)
+		if(len(self.table_dist_ally) > 0): # s'il y a un ally
+			self.mean_distance_ally = sum(self.table_dist_ally)/len(self.table_dist_ally)
+			self.mean_angle_ally = sum(self.table_angle_ally)/len(self.table_dist_ally)
+		else:
+			self.mean_distance_ally = 1000
+			self.mean_angle_ally = 0
 		#position ressource la plus proche
-		self.distance_nearest_resource = np.min(self.table_dist_resource)
-		self.angle_nearest_resource = self.table_angle_resource(self.table_dist_resource.index(self.distance_nearest_resource))
+		if(len(self.table_dist_resource) > 0): # s'il y a un resource
+			self.distance_nearest_resource = min(self.table_dist_resource)
+			self.angle_nearest_resource = self.table_angle_resource[self.table_dist_resource.index(self.distance_nearest_resource)]
+		else:
+			self.distance_nearest_resource = 1000
+			self.angle_nearest_resource = 0
 		#position tir le plus proche
-		self.distance_nearest_tir = np.min(self.table_dist_tir)
-		self.angle_nearest_tir = self.table_angle_tir(self.table_dist_tir.index(self.distance_nearest_tir))
+		if(len(self.table_dist_tir) > 0): # s'il y a un tir
+			self.distance_nearest_tir = min(self.table_dist_tir)
+			self.angle_nearest_tir = self.table_angle_tir[self.table_dist_tir.index(self.distance_nearest_tir)]
+		else:
+			self.distance_nearest_tir = 1000
+			self.angle_nearest_tir = 0
 		#Point de vie
 		self.pv = agent.pv
 		
@@ -402,6 +437,7 @@ class Game():
 		self.creer_agents()
 
 	def creer_agents(self):
+		# TODO : refaire
 		A1 = Agent(0, 0, 0, 0, 0, 1)
 		A2 = Agent(0, 0, 0, 0, 45, 2)
 		self.list_agent.append(A1)
@@ -443,6 +479,10 @@ class Game():
 		pass #TODO ?
 	def update(self):
 		# appellee a chaque frame
+		# choix d'action des agents
+		for agent in self.list_agent:
+			state = State(agent, self.objectsList)
+			agent.execute_action(state)
 		# mouvement des agents et tires
 		for objet in self.objectsList:
 			objet.move()
