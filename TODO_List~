@@ -16,9 +16,6 @@ DERNIERE MAJ:
   -Area(Zone d'affichage) 
   
   -Interface
-  -fonction play / pause
-  -fonction reset
-            
 ///////////////////////////////////////////////////////////////////////
 
 A FAIRE:
@@ -30,6 +27,8 @@ Mode "training"
               
               Création de ressources
               Rotation des images
+              fonction play / pause
+              fonction reset
               fonction update
 
 
