@@ -97,8 +97,8 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 2500
-TRAINING_N_STEP = 300
+TRAINING_N_EPISODE = 1500
+TRAINING_N_STEP = 200
 TRAINING_GAMMA = 0.5
 
 # ???
@@ -396,28 +396,28 @@ def calcul_reward(current_state,next_state):
 		next_state.agent.cibleTouchee = False
 
 	#si il se rapproche des ressources
-	if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
+	if (next_state.D_resource_min < current_state.D_resource_min):
 		reward  = reward + 10
-	elif (next_state.distance_nearest_resource > current_state.distance_nearest_resource):
+	elif (next_state.D_resource_min > current_state.D_resource_min):
 		reward = reward - 10
 	else:
 		reward = reward - 0.1
 	#si un tir ennemy se rapproche de lui
-	if (next_state.disance_nearest_tir < current_state.distance_nearest_tir):
+	if (next_state.D_projectile_min < current_state.D_projectile_min):
 		reward = reward - 3
 	#si perd pV
 	if (next_state.pv < current_state.pv):
 		reward = reward - 100
 	#si orienté plus justement face a ressource
-	if(abs(next_state.angle_nearest_resource) < abs(current_state.angle_nearest_resource)):
+	if(abs(next_state.A_resource_min) < abs(current_state.A_resource_min)):
 		reward = reward + 2
-	elif(abs(next_state.angle_nearest_resource) > abs(current_state.angle_nearest_resource)):
+	elif(abs(next_state.A_resource_min) > abs(current_state.A_resource_min)):
 		reward = reward - 2
 	else:
 		reward = reward - 0.02
 	# COMPARER les totals rewards de chaque équipe	(a faire)
-	if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
-		reward = reward + 100
+	#if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
+	#	reward = reward + 100
 
 	return reward
 
@@ -616,6 +616,7 @@ class Game():
 			agent.reload = agent.reload-1
 			if agent.reload < 0:
 				agent.reload = 0
+
 		# collision agent-ressource
 		for agent in self.list_agent:
 			for resource in self.list_resource:
@@ -624,7 +625,7 @@ class Game():
 					self.objectsList.remove(resource)
 					#TODO : donner récompense à Agent
 					agent.aMange = True
-		# collision tir-ressource et tir-agent
+		# collision tir-agent
 		for agent in self.list_agent:
 			for projectile in self.list_projectile:
 				if agent.collision(projectile) and agent.team != projectile.team:
@@ -632,12 +633,13 @@ class Game():
 					agent.takeDamage(projectile.dmg)
 					self.objectsList.remove(projectile)
 					self.list_projectile.remove(projectile)
-					#TODO : donner récompense à Agent
+					continue
 
+		#projectiles sortant du terrain
 		for p in self.list_projectile:
 			if(p.x + p.width  >= GAME_AREA_WIDTH or p.y + p.height >= GAME_AREA_HEIGHT or p.x < 0 or p.y < 0):
-				game.objectsList.remove(p)
-				game.list_projectile.remove(p)
+				self.objectsList.remove(p)
+				self.list_projectile.remove(p)
 
 
 
