@@ -96,7 +96,7 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 100
+TRAINING_N_EPISODE = 1000
 TRAINING_N_STEP = 400
 TRAINING_GAMMA = 0.5
 
@@ -178,7 +178,7 @@ class Objet:
 			self.y = GAME_AREA_HEIGHT - self.height
 	
 	def collision(self,obj):
-	#verifie la collision entre les objets
+		#verifie la collision entre les objets
 		ret = False
 		#if (self.x + self.width < obj.x - obj.width and self.x - self.width > obj.x + obj.width and self.y + self.height < obj.y - obj.height and self.y - self.height > obj.y + obj.height):
 		if ((self.x + self.width < obj.x or self.x > obj.x + obj.width) or (self.y + self.height < obj.y or self.y > obj.y + obj.height)):
@@ -218,6 +218,7 @@ class Objet:
 class Agent(Objet):
 # classe pour les agents
 	current_action = 0
+	aMange = False
 	def __init__(self,x=0,y=0, angle = 0, team = 0):
 		dx = 0
 		dy = 0
@@ -347,11 +348,17 @@ def calcul_reward(current_state,next_state):
 	global q_table
 
 	reward = 0
+	# s'il a mange une pomme
+	if(next_state.agent.aMange):
+		reward = reward + 1000
+		next_state.agent.aMange = False
 	#si il se rapproche des ressources
 	if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
 		reward  = reward + 10
-	#else:
-		#reward = reward - 10
+	elif (next_state.distance_nearest_resource > current_state.distance_nearest_resource):
+		reward = reward - 10
+	else:
+		reward = reward - 0.1
 	#si un tir ennemy se rapproche de lui
 	#if (next_state.disance_nearest_tir < current_state.distance_nearest_tir):
 		#reward = reward - 2
@@ -361,6 +368,10 @@ def calcul_reward(current_state,next_state):
 	#si orienté plus justement face a ressource
 	if(abs(next_state.angle_nearest_resource) < abs(current_state.angle_nearest_resource)):
 		reward = reward + 2
+	elif(abs(next_state.angle_nearest_resource) > abs(current_state.angle_nearest_resource)):
+		reward = reward - 2
+	else:
+		reward = reward - 0.02
 	# COMPARER les totals rewards de chaque équipe	(a faire)
 	if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
 		reward = reward + 100
@@ -383,6 +394,7 @@ def qtrain():
 		for k in range(len(game.list_agent)):
 			list_state[k] = None 
 			list_action[k] = None 
+			list_total_reward[k] = 0 
 		#initialisation ETAT agent
 		for k in range(len(game.list_agent)):
 			list_state[k] = State(game.list_agent[k],game.objectsList); #Stock les etats de chaque agent
@@ -558,6 +570,7 @@ class Game():
 					self.list_resource.remove(resource)
 					self.objectsList.remove(resource)
 					#TODO : donner récompense à Agent
+					agent.aMange = True
 		# collision tir-ressource et tir-agent
 		for projectile in self.list_projectile:
 			for resource in self.list_resource:

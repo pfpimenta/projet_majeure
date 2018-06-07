@@ -153,7 +153,8 @@ class State():
 				self.stateID = self.stateID * (self.primes[5]**self.state_angle_nearest_tir)
 				break
 
-		print("Stats")
+		#debug 
+		print("State")
 		print(self.distance_nearest_resource, self.state_distance_nearest_resource)
 		print(self.angle_nearest_resource, self.state_angle_nearest_resource)
 		

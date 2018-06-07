@@ -19,10 +19,14 @@ WINDOW_HEIGHT = 500
 GAME_AREA_WIDTH = 500
 GAME_AREA_HEIGHT = 500
 
-TIME_PERIOD = 100 # miliseconds entre frames
-INIT_LEARNING_RATE = 0.1
+# valeurs initialles de l'interface
 INIT_NB_E1 = 1
 INIT_NB_E2 = 0
+INIT_LEARNING_RATE = 0.1
+INIT_RESOURCE_SPAWNING_RATE = 0.01
+INIT_RANDOM_PATH_PROB = 0.1
+INIT_TIME_PERIOD = 100 # miliseconds entre frames
+INIT_TIME_MODULO = 1 
 
 IMAGEPATH_BACKGROUND = "Images/background.jpg"
 
@@ -98,22 +102,25 @@ class Ui_MainWindow(object):
 		self.SpinBoxTimePeriod.setDecimals(4)
 		self.SpinBoxTimePeriod.setObjectName("SpinBoxTimePeriod")
 		self.SpinBoxTimePeriod.setRange(1,99999) #ajoutee
-		self.SpinBoxTimePeriod.setValue(TIME_PERIOD) #ajoutee
+		self.SpinBoxTimePeriod.setValue(INIT_TIME_PERIOD) #ajoutee
 		self.spinBoxModulo = QtWidgets.QSpinBox(self.centralwidget)
 		self.spinBoxModulo.valueChanged.connect(self.updateTimeModulo) # ajoutee
 		self.spinBoxModulo.setGeometry(QtCore.QRect(650, 360, 100, 27))
 		self.spinBoxModulo.setObjectName("spinBoxModulo")
 		self.spinBoxModulo.setRange(1,99999) #ajoutee
+		self.spinBoxModulo.setValue(INIT_TIME_MODULO) #ajoutee
 		self.SpinBoxRSR = QtWidgets.QDoubleSpinBox(self.centralwidget) # resource spawn rate
 		self.SpinBoxRSR.valueChanged.connect(self.updateRSR) # ajoutee
 		self.SpinBoxRSR.setGeometry(QtCore.QRect(690, 160, 141, 27))
 		self.SpinBoxRSR.setDecimals(10)
 		self.SpinBoxRSR.setObjectName("SpinBoxRSR")
+		self.SpinBoxRSR.setValue(INIT_RESOURCE_SPAWNING_RATE) #ajoutee
 		self.SpinBoxRPP = QtWidgets.QDoubleSpinBox(self.centralwidget) # random path prob
 		self.SpinBoxRPP.valueChanged.connect(self.updateRPP) # ajoutee
 		self.SpinBoxRPP.setGeometry(QtCore.QRect(690, 240, 141, 27))
 		self.SpinBoxRPP.setDecimals(10)
 		self.SpinBoxRPP.setObjectName("SpinBoxRPP")
+		self.SpinBoxRPP.setValue(INIT_RANDOM_PATH_PROB) #ajoutee
 		self.MainWindow.setCentralWidget(self.centralwidget)
 		self.menubar = QtWidgets.QMenuBar(self.MainWindow)
 		self.menubar.setGeometry(QtCore.QRect(0, 0, 845, 25))
