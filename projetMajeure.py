@@ -16,6 +16,7 @@ from state import *
 import numpy as np
 import random as rd
 import math
+from os import system as osSystem
 
 # WINDOW / GAME_AREA
 ## Modifié pour commencer avec WINDOW_, GAME_AREA_
@@ -40,14 +41,14 @@ AGENT_DR = 5 #en degrés
 # PROJECTILE
 ## Modifié pour commencer avec PROJECTILE_
 PROJECTILE_DAMAGE = 1
-PROJECTILE_WIDTH = 16
-PROJECTILE_HEIGHT = 16
-PROJECTILE_VITESSE = 30
+PROJECTILE_WIDTH = 8
+PROJECTILE_HEIGHT = 8
+PROJECTILE_VITESSE = 20
 
 # RESSOURCE
 ## Pas modifié, juste organisé
-RESOURCE_WIDTH = 16
-RESOURCE_HEIGHT = 16
+RESOURCE_WIDTH = 24
+RESOURCE_HEIGHT = 24
 RESOURCE_REWARD = 400
 
 
@@ -62,7 +63,7 @@ IMAGEPATH_404 = "Images/ImageNotFound.png"
 IMAGEPATH_AGENT_BLEU = "Images/AgentBleu.png"
 IMAGEPATH_AGENT_ROUGE = "Images/AgentRouge.png"
 IMAGEPATH_AGENT_NEUTRE = "Images/AgentNeutre.png"
-IMAGEPATH_RESOURCE = "Images/Resource.png"
+IMAGEPATH_RESOURCE = "Images/Resource2.png"
 IMAGEPATH_PROJECTILE_BLEU = "Images/Projectile_Bleu.png"
 IMAGEPATH_PROJECTILE_ROUGE = "Images/Projectile_Rouge.png"
 
@@ -96,8 +97,8 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 1000
-TRAINING_N_STEP = 400
+TRAINING_N_EPISODE = 2500
+TRAINING_N_STEP = 300
 TRAINING_GAMMA = 0.5
 
 # ???
@@ -219,22 +220,50 @@ class Agent(Objet):
 # classe pour les agents
 	current_action = 0
 	aMange = False
+	estTouche = False
+	estMort = False
+	cibleTouchee = False
 	def __init__(self,x=0,y=0, angle = 0, team = 0):
 		dx = 0
 		dy = 0
 		Objet.__init__(self,x,y,dx,dy,angle,team, TYPE_AGENT);
 		self.pv = AGENT_PV_INITIAL
+		self.reload = 0
+		self.reloadMax = 4
 
 	def shoot(self):
-		projectile = Tir(self)
-		game.objectsList.append(projectile)
-		game.list_projectile.append(projectile)
-		pass # TODO
+		if self.reload == 0:
+			self.reload = self.reloadMax
+			projectile = Tir(self)
+			game.objectsList.append(projectile)
+			game.list_projectile.append(projectile)
+
+	def takeDamage(self, dmg):
+		self.pv = self.pv - 1
+		self.estTouche = True
+		if self.pv < 0:
+			self.spawn()
+			self.estMort = True
+	
+	def spawn(self):
+		angle = rd.randint(0,360)
+		if self.team == 1: #BLEU
+			x = rd.randint(0,100-AGENT_WIDTH)
+			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
+		elif self.team == 2: #ROUGE
+			x = rd.randint(GAME_AREA_WIDTH-100,GAME_AREA_WIDTH-AGENT_WIDTH)
+			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
+		else:
+			print("ERR: INCORRECT AGENT")
+
+		self.x = x
+		self.y = y
+		self.pv = AGENT_PV_INITIAL
+			
 		
 	def execute_action(self, state):
 	# faire une action
 		#self.current_action = self.take_action(state) # choisir l'action
-		print(" DEBUG ACTION : " + str(self.current_action))
 		if (self.current_action == ACTION_STOP):
 			self.dy = 0
 			self.dx = 0
@@ -300,13 +329,14 @@ class Tir(Objet):
 		self.dx = int(round(PROJECTILE_VITESSE*np.sin(np.deg2rad(agent.angle))))
 		Objet.__init__(self,agent.x,agent.y,self.dx,self.dy,agent.angle,agent.team,TYPE_PROJECTILE);
 		self.dmg = PROJECTILE_DAMAGE
+		self.agent = agent
 	def move(self):
 		self.x = self.x + self.dx
 		self.y = self.y + self.dy
 		# si le tir sort l'ecran il disparait
-		if(self.x + self.width  >= GAME_AREA_WIDTH or self.y + self.height >= GAME_AREA_HEIGHT or self.x < 0 or self.y < 0):
-			game.objectsList.remove(self)
-			game.list_projectile.remove(self)
+		#if(self.x + self.width  >= GAME_AREA_WIDTH or self.y + self.height >= GAME_AREA_HEIGHT or self.x < 0 or self.y < 0):
+		#	game.objectsList.remove(self)
+		#	game.list_projectile.remove(self)
 		
 
 
@@ -352,6 +382,19 @@ def calcul_reward(current_state,next_state):
 	if(next_state.agent.aMange):
 		reward = reward + 1000
 		next_state.agent.aMange = False
+	# s'il est touché par un projectile adverse
+	if(next_state.agent.estTouche):
+		reward = reward - 200
+		next_state.agent.estTouche = False
+	# s'il meurt (touché trois fois)
+	if(next_state.agent.estMort):
+		reward = reward - 800
+		next_state.agent.estMort = False
+	# s'il touche une cible
+	if(next_state.agent.cibleTouchee):
+		reward = reward + 500
+		next_state.agent.cibleTouchee = False
+
 	#si il se rapproche des ressources
 	if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
 		reward  = reward + 10
@@ -360,8 +403,8 @@ def calcul_reward(current_state,next_state):
 	else:
 		reward = reward - 0.1
 	#si un tir ennemy se rapproche de lui
-	#if (next_state.disance_nearest_tir < current_state.distance_nearest_tir):
-		#reward = reward - 2
+	if (next_state.disance_nearest_tir < current_state.distance_nearest_tir):
+		reward = reward - 3
 	#si perd pV
 	if (next_state.pv < current_state.pv):
 		reward = reward - 100
@@ -391,6 +434,12 @@ def qtrain():
 	#Pour chaque partie
 	for i in range(TRAINING_N_EPISODE):
 		#vider les lists
+		p = np.floor(1000*i/TRAINING_N_EPISODE)/10
+		osSystem("clear") #Vider la console
+		#Message affiché à chaque itération
+		print("Entrainement en cours...")
+		print("Episode : " + str(i) + "/" + str(TRAINING_N_EPISODE))
+		print("(" + str(p) + "%)\n")
 		for k in range(len(game.list_agent)):
 			list_state[k] = None 
 			list_action[k] = None 
@@ -405,7 +454,7 @@ def qtrain():
 			updateQTable(list_state, list_action, list_total_reward)
 			#print("Episode: "+ str(i) + " q table : " + str(q_table)) #debug
 
-	print("final q table : " + str(q_table)) #debug
+	#print("final q table : " + str(q_table)) #debug
 
 def takeAllActions(list_state):
  # pour chaque etat d'agent choisi une action associé grace a la Q_table
@@ -428,7 +477,7 @@ def updateQTable(list_state, list_action, list_total_reward):
 		q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state)) - q(list_state[m],list_action[m]))
 		#q(list_state[m])[list_action[m]]
 		list_state[m] = next_state
-		print("Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
+		#print("Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
 
 
 
@@ -451,8 +500,8 @@ class Game():
 	# "window" : la valeur qui l'utilisateur change a la fenettre
 	current_nb_agents_E1 = 1 # equipe 1
 	window_nb_agents_E1 = 1
-	current_nb_agents_E2 = 0 # equipe 2
-	window_nb_agents_E2 = 0
+	current_nb_agents_E2 = 1 # equipe 2
+	window_nb_agents_E2 = 1
 	current_resource_spawn_rate = 0
 	window_resource_spawn_rate = 0
 	current_learning_rate = 0.005
@@ -480,20 +529,18 @@ class Game():
 
 	def creer_agents(self):
 		for i in range(self.current_nb_agents_E1):
-			x = rd.randint(0,100-AGENT_WIDTH)
-			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
-			angle = rd.randint(0,360)
-			a = Agent(x,y, angle, 1)
-			self.list_agent.append(a)
+			a = Agent(0,0,0,1)
+			a.spawn()
 			self.objectsList.append(a)
+			self.list_agent.append(a)
+
 		for i in range(self.current_nb_agents_E2):
-			x = rd.randint(GAME_AREA_WIDTH-100,GAME_AREA_WIDTH-AGENT_WIDTH)
-			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
-			angle = rd.randint(0,360)
-			a = Agent(x,y, angle, 2)
-			self.list_agent.append(a)
+			a = Agent(0,0,0,2)
+			a.spawn()
 			self.objectsList.append(a)
-		print("DEBUG LIST AGENTS : " + str(len(self.list_agent)))
+			self.list_agent.append(a)
+
+		#print("DEBUG LIST AGENTS : " + str(len(self.list_agent)))
 
 	def playPause(self):
 		print ("DEBUG play pause")
@@ -563,6 +610,12 @@ class Game():
 			#x = rd.randint(150, GAME_AREA_WIDTH - 150 - RESOURCE_WIDTH)
 			#y = rd.randint(0, 100 - RESOURCE_WIDTH)
 			self.creer_resource()
+
+		#rechargement agents
+		for agent in self.list_agent:
+			agent.reload = agent.reload-1
+			if agent.reload < 0:
+				agent.reload = 0
 		# collision agent-ressource
 		for agent in self.list_agent:
 			for resource in self.list_resource:
@@ -572,12 +625,19 @@ class Game():
 					#TODO : donner récompense à Agent
 					agent.aMange = True
 		# collision tir-ressource et tir-agent
-		for projectile in self.list_projectile:
-			for resource in self.list_resource:
-				if agent.collision(resource):
-					self.list_resource.remove(resource)
-					self.objectsList.remove(resource)
+		for agent in self.list_agent:
+			for projectile in self.list_projectile:
+				if agent.collision(projectile) and agent.team != projectile.team:
+					projectile.agent.cibleTouchee = True
+					agent.takeDamage(projectile.dmg)
+					self.objectsList.remove(projectile)
+					self.list_projectile.remove(projectile)
 					#TODO : donner récompense à Agent
+
+		for p in self.list_projectile:
+			if(p.x + p.width  >= GAME_AREA_WIDTH or p.y + p.height >= GAME_AREA_HEIGHT or p.x < 0 or p.y < 0):
+				game.objectsList.remove(p)
+				game.list_projectile.remove(p)
 
 
 
@@ -592,6 +652,7 @@ if __name__ == '__main__':
 	ui = Ui_MainWindow() # classe cree par QtDesigner
 	ui.setupUi(fenetre)
 	game.update_parametres()
+	osSystem("clear")
 	qtrain()
 	def timeout():
 		if(game.isPlay):
