@@ -20,7 +20,9 @@ GAME_AREA_WIDTH = 500
 GAME_AREA_HEIGHT = 500
 
 TIME_PERIOD = 100 # miliseconds entre frames
-INIT_LEARNING_RATE = 0.005
+INIT_LEARNING_RATE = 0.1
+INIT_NB_E1 = 1
+INIT_NB_E2 = 0
 
 IMAGEPATH_BACKGROUND = "Images/background.jpg"
 
@@ -75,11 +77,12 @@ class Ui_MainWindow(object):
 		self.spinBoxE1.valueChanged.connect(self.updateNbE1) # ajoutee
 		self.spinBoxE1.setGeometry(QtCore.QRect(600, 100, 51, 27))
 		self.spinBoxE1.setObjectName("spinBoxE1")
-		self.spinBoxE1.setValue(1) #ajoutee
+		self.spinBoxE1.setValue(INIT_NB_E1) #ajoutee
 		self.spinBoxE2 = QtWidgets.QSpinBox(self.centralwidget)
 		self.spinBoxE2.valueChanged.connect(self.updateNbE2) # ajoutee
 		self.spinBoxE2.setGeometry(QtCore.QRect(780, 100, 51, 27))
 		self.spinBoxE2.setObjectName("spinBoxE2")
+		self.spinBoxE2.setValue(INIT_NB_E2) #ajoutee
 		self.nbEpisodes = QtWidgets.QLabel(self.centralwidget)
 		self.nbEpisodes.setGeometry(QtCore.QRect(680, 460, 51, 31))
 		self.nbEpisodes.setObjectName("nbEpisodes")

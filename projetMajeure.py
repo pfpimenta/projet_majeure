@@ -63,6 +63,8 @@ IMAGEPATH_AGENT_BLEU = "Images/AgentBleu.png"
 IMAGEPATH_AGENT_ROUGE = "Images/AgentRouge.png"
 IMAGEPATH_AGENT_NEUTRE = "Images/AgentNeutre.png"
 IMAGEPATH_RESOURCE = "Images/Resource.png"
+IMAGEPATH_PROJECTILE_BLEU = "Images/Projectile_Bleu.png"
+IMAGEPATH_PROJECTILE_ROUGE = "Images/Projectile_Rouge.png"
 
 #Action possible
 ## Modifié pour commencer avec ACTION_
@@ -75,13 +77,13 @@ ACTION_SHOOT = 4
 ACTION_BUILD = 5
 """
 
-ACTION_STOP = 999
-ACTION_SHOOT = 999
-ACTION_BUILD = 8008135
 ACTION_MOVE = 0
 ACTION_TRIGO = 1
 ACTION_HORAIRE = 2
-ACTIONS = [ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE]
+ACTION_SHOOT = 3
+ACTION_STOP = 4
+ACTION_BUILD = 8008135
+ACTIONS = [ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE, ACTION_SHOOT]
 
 
 
@@ -89,13 +91,13 @@ ACTIONS = [ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE]
 ## Modifié pour commencer avec TYPE
 TYPE_RESOURCE = 0
 TYPE_AGENT = 1
-TYPE_TIR = 2
+TYPE_PROJECTILE = 2
 TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 10
-TRAINING_N_STEP = 1000
+TRAINING_N_EPISODE = 100
+TRAINING_N_STEP = 400
 TRAINING_GAMMA = 0.5
 
 # ???
@@ -150,12 +152,16 @@ class Objet:
 			else:
 				#Agent neutre
 				pixmapPath = IMAGEPATH_AGENT_NEUTRE
-
 		elif type_obj == TYPE_PROJECTILE:
+			#l'objet est un projectile
 			self.width = PROJECTILE_WIDTH
 			self.height = PROJECTILE_HEIGHT
-			#l'objet est un projectile
-			pass
+			if team == TEAM_BLUE:
+				#Agent bleu
+				pixmapPath = IMAGEPATH_PROJECTILE_BLEU
+			elif team == TEAM_RED:
+				#Agent rouge
+				pixmapPath = IMAGEPATH_PROJECTILE_ROUGE
 
 		self.pixmap = QPixmap()
 		self.pixmap.load(pixmapPath)	
@@ -219,7 +225,9 @@ class Agent(Objet):
 		self.pv = AGENT_PV_INITIAL
 
 	def shoot(self):
-		#Tir(self)
+		projectile = Tir(self)
+		game.objectsList.append(projectile)
+		game.list_projectile.append(projectile)
 		pass # TODO
 		
 	def execute_action(self, state):
@@ -286,12 +294,19 @@ class Agent(Objet):
 	
 class Tir(Objet):
 # classe pour les tirs
-
 	def __init__(self,agent):
-		self.dy =  int(round(PROJECTILE_VITESSE*sin(agent.angle))) #maj des prochains dépacment
-		self.dx = int(round(PROJECTILE_VITESSE*cos(agent.angle)))
-		Objet.__init__(self,agent.x,agent.y,dx,dy,agent.team,agent.angle, 0, TYPE_TIR);
+		self.dy =  int(round(-PROJECTILE_VITESSE*np.cos(np.deg2rad(agent.angle)))) #maj des prochains dépacment
+		self.dx = int(round(PROJECTILE_VITESSE*np.sin(np.deg2rad(agent.angle))))
+		Objet.__init__(self,agent.x,agent.y,self.dx,self.dy,agent.angle,agent.team,TYPE_PROJECTILE);
 		self.dmg = PROJECTILE_DAMAGE
+	def move(self):
+		self.x = self.x + self.dx
+		self.y = self.y + self.dy
+		# si le tir sort l'ecran il disparait
+		if(self.x + self.width  >= GAME_AREA_WIDTH or self.y + self.height >= GAME_AREA_HEIGHT or self.x < 0 or self.y < 0):
+			game.objectsList.remove(self)
+			game.list_projectile.remove(self)
+		
 
 
 		
@@ -359,7 +374,7 @@ def calcul_reward(current_state,next_state):
 def qtrain():
 	global q_table
 	
-	list_total_reward = np.zeros((1,len(game.list_agent)),dtype=int)
+	list_total_reward = [0 for agent in game.list_agent] # np.zeros((1,len(game.list_agent)),dtype=int)
 	list_action = [None for agent in game.list_agent]
 	list_state = [None for agent in game.list_agent]
 	#Pour chaque partie
@@ -376,9 +391,9 @@ def qtrain():
 			list_action = takeAllActions(list_state)
 			game.update()
 			updateQTable(list_state, list_action, list_total_reward)
-			print("Episode: "+ str(i) + " q table : " + str(q_table))
+			#print("Episode: "+ str(i) + " q table : " + str(q_table)) #debug
 
-
+	print("final q table : " + str(q_table)) #debug
 
 def takeAllActions(list_state):
  # pour chaque etat d'agent choisi une action associé grace a la Q_table
@@ -389,15 +404,16 @@ def takeAllActions(list_state):
 	return list_action
 
 def updateQTable(list_state, list_action, list_total_reward):
-	current_learning_rate = 0.5 #A changer
+	current_learning_rate = 0.25 #A changer
 	for m in range(len(game.list_agent)):
 		#CALCUL les nouvelles etats
 		next_state = State(list_state[m].agent,game.objectsList)
 		#CALCUL Reward R pour chaque agent
 		reward =  calcul_reward(list_state[m],next_state)
+		#print("debug updateQtable : " + str(m) + " reward : " + str(reward))
 		list_total_reward[m] = list_total_reward[m] + reward
 		#CREATION NOUVEL ETAT POUR CHAQUE AGENT
-		q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * np.max(q(next_state)) - q(list_state[m],list_action[m]))
+		q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state)) - q(list_state[m],list_action[m]))
 		#q(list_state[m])[list_action[m]]
 		list_state[m] = next_state
 		print("Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
@@ -415,6 +431,7 @@ class Game():
 	objectsList = []
 	list_agent = []
 	list_resource = []
+	list_projectile = []
 	isPlay = False # flag : False = pause; True = play
 	gameCounter = 1 # clock pour time modulo
 	# initialisations : 
@@ -464,7 +481,7 @@ class Game():
 			a = Agent(x,y, angle, 2)
 			self.list_agent.append(a)
 			self.objectsList.append(a)
-		# TODO : refaire
+		print("DEBUG LIST AGENTS : " + str(len(self.list_agent)))
 
 	def playPause(self):
 		print ("DEBUG play pause")
@@ -500,7 +517,23 @@ class Game():
 		for i in range(3):
 			self.creer_resource()
 		ui.gameWidget.update()
-		pass #TODO ?
+
+	def update_parametres(self):
+		self.window_nb_agents_E1 = ui.spinBoxE1.value()
+		self.window_nb_agents_E2 = ui.spinBoxE2.value()
+		self.window_resource_spawn_rate = ui.SpinBoxRSR.value()
+		self.window_learning_rate = ui.SpinBoxLearningRate.value()
+		self.window_random_path_prob = ui.SpinBoxRPP.value()
+		self.window_time_period = ui.SpinBoxTimePeriod.value()
+		self.window_time_modulo = ui.spinBoxModulo.value()
+		self.current_nb_agents_E1 = self.window_nb_agents_E1
+		self.current_nb_agents_E2 = self.window_nb_agents_E2
+		self.current_resource_spawn_rate  = self.window_resource_spawn_rate
+		self.current_learning_rate = self.window_learning_rate
+		self.current_random_path_prob = self.window_random_path_prob
+		self.current_time_period = self.window_time_period
+		self.current_time_modulo = self.window_time_modulo
+
 	def update(self):
 		# appellee a chaque frame
 		# choix d'action des agents
@@ -525,7 +558,13 @@ class Game():
 					self.list_resource.remove(resource)
 					self.objectsList.remove(resource)
 					#TODO : donner récompense à Agent
-
+		# collision tir-ressource et tir-agent
+		for projectile in self.list_projectile:
+			for resource in self.list_resource:
+				if agent.collision(resource):
+					self.list_resource.remove(resource)
+					self.objectsList.remove(resource)
+					#TODO : donner récompense à Agent
 
 
 
@@ -539,6 +578,7 @@ if __name__ == '__main__':
 	fenetre = Fenetre(game)
 	ui = Ui_MainWindow() # classe cree par QtDesigner
 	ui.setupUi(fenetre)
+	game.update_parametres()
 	qtrain()
 	def timeout():
 		if(game.isPlay):
