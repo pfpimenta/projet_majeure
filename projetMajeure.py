@@ -78,13 +78,13 @@ ACTION_SHOOT = 4
 ACTION_BUILD = 5
 """
 
-ACTION_MOVE = 0
-ACTION_TRIGO = 1
-ACTION_HORAIRE = 2
-ACTION_SHOOT = 3
-ACTION_STOP = 4
+ACTION_STOP = 0
+ACTION_MOVE = 1
+ACTION_TRIGO = 2
+ACTION_HORAIRE = 3
+ACTION_SHOOT = 4
 ACTION_BUILD = 8008135
-ACTIONS = [ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE, ACTION_SHOOT]
+ACTIONS = [ACTION_STOP, ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE, ACTION_SHOOT]
 
 
 
@@ -97,9 +97,9 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 500
-TRAINING_N_STEP = 200
-TRAINING_GAMMA = 0.5
+TRAINING_N_EPISODE = 5000
+TRAINING_N_STEP = 100
+TRAINING_GAMMA = 0.95
 
 #N_STATE = len([0:np.sqrt(H*H+W*W):])
 global q_table_E1, q_table_E2
@@ -391,14 +391,9 @@ def calcul_reward(current_state,next_state):
 	#	agentName = "				" + agentName
 	# s'il a mange une pomme
 	if(next_state.agent.aMange):
-		if next_state.agent.team == 1:
-			reward = reward + 1000
-		else:
-			#reward = reward + 200
-			pass
-		#print(agentName + " a mangé")
-
+		reward = reward + 1000
 		next_state.agent.aMange = False
+
 	# s'il est touché par un projectile adverse
 	if(next_state.agent.estTouche):
 		reward = reward - 200
@@ -411,11 +406,7 @@ def calcul_reward(current_state,next_state):
 		#print(agentName + " est mort")
 	# s'il touche une cible
 	if(next_state.agent.cibleTouchee):
-		if next_state.agent.team == 1:
-			#reward = reward + 100
-			pass
-		else:
-			reward = reward + 500
+		reward = reward + 500
 		#print(agentName + " a touché une cible")
 		next_state.agent.cibleTouchee = False
 
@@ -425,28 +416,29 @@ def calcul_reward(current_state,next_state):
 	elif (next_state.D_resource_min > current_state.D_resource_min):
 		reward = reward - 10
 	else:
-		reward = reward - 0.1
+		reward = reward - 0
+
 	#si un tir ennemy se rapproche de lui
 	if (next_state.D_projectile_min < current_state.D_projectile_min):
-		reward = reward - 3
+		reward = reward - 0
 	#else:
 	#	reward = reward + 3
 
 	#si orienté plus justement face a ressource
 	if(abs(next_state.A_resource_min) < abs(current_state.A_resource_min)):
-		reward = reward + 2
+		reward = reward + 5
 	elif(abs(next_state.A_resource_min) > abs(current_state.A_resource_min)):
-		reward = reward - 2
+		reward = reward - 5
 	else:
-		reward = reward - 0.02
+		reward = reward - 0.05
 
-	#si orienté plus justement face a ennemi
+#si orienté plus justement face a ennemi
 	if(abs(next_state.A_ennemy_min) < abs(current_state.A_ennemy_min)):
-		reward = reward + 2
+		reward = reward + 5
 	elif(abs(next_state.A_ennemy_min) > abs(current_state.A_ennemy_min)):
-		reward = reward - 2
+		reward = reward - 5
 	else:
-		reward = reward - 0.02
+		reward = reward - 0.1
 	# COMPARER les totals rewards de chaque équipe	(a faire)
 	#if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
 	#	reward = reward + 100
@@ -498,7 +490,7 @@ def takeAllActions(list_state):
 
 
 def updateQTable(list_state, list_action, list_total_reward):
-	current_learning_rate = 0.25 #A changer
+	current_learning_rate = 0.001 #A changer
 	for m in range(len(game.list_agent)):
 		# get agent team
 		team = list_state[m].agent.team
@@ -546,10 +538,10 @@ class Game():
 	# initialisations : 
 	# "current" : la valeur utilisee par le jeu
 	# "window" : la valeur qui l'utilisateur change a la fenettre
-	current_nb_agents_E1 = 2 # equipe 1
-	window_nb_agents_E1 = 2
-	current_nb_agents_E2 = 2 # equipe 2
-	window_nb_agents_E2 = 2
+	current_nb_agents_E1 = 1 # equipe 1
+	window_nb_agents_E1 = 1
+	current_nb_agents_E2 = 1 # equipe 2
+	window_nb_agents_E2 = 1
 	current_resource_spawn_rate = 0
 	window_resource_spawn_rate = 0
 	current_learning_rate = 0.005
@@ -695,18 +687,7 @@ class Game():
 		
 # main
 if __name__ == '__main__':
-    
-	app = QApplication(sys.argv)
-	game = Game()
-	fenetre = Fenetre(game)
-	ui = Ui_MainWindow() # classe cree par QtDesigner
-	ui.setupUi(fenetre)
-	game.update_parametres()
-	osSystem("clear")
-	if False:
-		load_q_tables()
-	qtrain()
-	#save_q_tables()
+
 	def timeout():
 		if(game.isPlay):
 			# "loop" du jeu
@@ -718,10 +699,24 @@ if __name__ == '__main__':
 		#timer.stop()
 		timePeriod = game.current_time_period
 		#timer.start(timePeriod)
-
-	timer = QTimer()
-	timer.timeout.connect(timeout)
-	timePeriod = ui.SpinBoxTimePeriod.value()
-	timer.start(timePeriod)
-	
+    
+	app = QApplication(sys.argv)
+	game = Game()
+	if "-l" in sys.argv:
+		load_q_tables()
+	if "-t" in sys.argv:
+		qtrain()
+		save_q_tables()
+		sys.exit()
+	else:
+		fenetre = Fenetre(game)
+		ui = Ui_MainWindow() # classe cree par QtDesigner
+		ui.setupUi(fenetre)
+		game.update_parametres()
+		osSystem("clear")
+		timer = QTimer()
+		timer.timeout.connect(timeout)
+		timePeriod = ui.SpinBoxTimePeriod.value()
+		timer.start(timePeriod)
 sys.exit(app.exec_())
+	
