@@ -78,11 +78,11 @@ class State():
 			"""
 		
 		#STATE DEFINITION: #variables discretisees
-		self.S_D_ennemy_min = 0
-		self.S_A_ennemy_min = 0
-		self.S_D_resource_min = 0
-		self.S_A_resource_min = 0
-		self.S_D_projectile_min = 0
+		self.S_D_ennemy_min = -1
+		self.S_A_ennemy_min = -1
+		self.S_D_resource_min = -1
+		self.S_A_resource_min = -1
+		self.S_D_projectile_min = -1
 		#self.S_A_projectie_min = 0
 		#self.state_pv = 0
 		#self.state_total_pv_ennemy = 0
@@ -122,38 +122,60 @@ class State():
 
 		self.stateID = 1
 
-		for k in self.thresholds["D_ennemy_min"]:
-			if self.D_ennemy_min <= k:
-				self.S_D_ennemy_min = self.thresholds["D_ennemy_min"].index(k)
+		T = self.thresholds["D_ennemy_min"]
+		for k in range(len(T)):
+			if self.D_ennemy_min <= T[k]:
+				self.S_D_ennemy_min = k
 				self.stateID = self.stateID * (self.primes[0]**self.S_D_ennemy_min)
 				break
-		for k in self.thresholds["A_ennemy_min"]:
-			if self.A_ennemy_min <= k:
-				self.S_A_ennemy_min = self.thresholds["A_ennemy_min"].index(k)
+		if self.S_D_ennemy_min == -1:
+			self.S_D_ennemy_min = len(T) - 1 #distance maximale
+
+		T = self.thresholds["A_ennemy_min"]
+		for k in range(len(T)):
+			if self.A_ennemy_min <= T[k]:
+				self.S_A_ennemy_min = k
 				self.stateID = self.stateID * (self.primes[1]**self.S_A_ennemy_min)
 				break
-		for k in self.thresholds["D_resource_min"]:
-			if self.D_resource_min <= k:
-				self.S_D_resource_min = self.thresholds["D_resource_min"].index(k)
+		if self.S_A_ennemy_min == -1:
+			self.S_A_ennemy_min = 0 #modulo (le dernier angle est lié au premier)
+
+		T = self.thresholds["D_resource_min"]
+		for k in range(len(T)):
+			if self.D_resource_min <= T[k]:
+				self.S_D_resource_min = k
 				self.stateID = self.stateID * (self.primes[2]**self.S_D_resource_min)
 				break
-		for k in self.thresholds["A_resource_min"]:
+		if self.S_D_resource_min == -1:
+			self.S_D_resource_min = len(T) - 1 #distance maximale
 
-			if self.A_resource_min <= k:
-				self.S_A_resource_min = self.thresholds["A_resource_min"].index(k)
+		T = self.thresholds["A_resource_min"]
+		for k in range(len(T)):
+			if self.A_resource_min <= T[k]:
+				self.S_A_resource_min = k
 				self.stateID = self.stateID * (self.primes[3]**self.S_A_resource_min)
 				break
-		for k in self.thresholds["D_projectile_min"]:
-			if self.D_projectile_min <= k:
-				self.S_D_projectile_min = self.thresholds["D_projectile_min"].index(k)
+		if self.S_A_resource_min == -1:
+			self.S_A_resource_min = 0 #modulo (le dernier angle est lié au premier)
+
+		T = self.thresholds["D_projectile_min"]
+		for k in range(len(T)):
+			if self.D_projectile_min <= T[k]:
+				self.S_D_projectile_min = k
 				self.stateID = self.stateID * (self.primes[4]**self.S_D_projectile_min)
 				break
+		if self.S_D_projectile_min == -1:
+			self.S_D_projectile_min = len(T) - 1 #distance maximale
+
 		"""
-		for k in self.thresholds["A_projectile_min"]:
-			if self.A_projectile_min <= k:
-				self.S_A_projectile_min = self.thresholds["A_projectile_min"].index(k)
-				self.stateID = self.stateID * (self.primes[5]**self.S_A_projectile_min)
+		T = self.thresholds["A_projectile_min"]
+		for k in range(len(T)):
+			if self.A_projectile_min <= T[k]:
+				self.S_A_projectile_min = k
+				self.stateID = self.stateID * (self.primes[0]**self.S_A_projectile_min)
 				break
+		if self.S_A_projectile_min == -1:
+			self.S_A_projectile_min = 0 #modulo (le dernier angle est lié au premier)
 		"""
 
 		#debug 

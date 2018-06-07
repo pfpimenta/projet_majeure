@@ -97,17 +97,14 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 1500
+TRAINING_N_EPISODE = 500
 TRAINING_N_STEP = 200
 TRAINING_GAMMA = 0.5
 
-# ???
-H = 256
-W = 256
-
 #N_STATE = len([0:np.sqrt(H*H+W*W):])
-global q_table
-q_table = {}
+global q_table_E1, q_table_E2
+q_table_E1 = {} #equipe bleu
+q_table_E2 = {} #equipe rouge
 eps = 0.1
 
 
@@ -327,7 +324,9 @@ class Tir(Objet):
 	def __init__(self,agent):
 		self.dy =  int(round(-PROJECTILE_VITESSE*np.cos(np.deg2rad(agent.angle)))) #maj des prochains dépacment
 		self.dx = int(round(PROJECTILE_VITESSE*np.sin(np.deg2rad(agent.angle))))
-		Objet.__init__(self,agent.x,agent.y,self.dx,self.dy,agent.angle,agent.team,TYPE_PROJECTILE);
+		Objet.__init__(self,agent.x,agent.y,self.dx,self.dy,agent.angle,agent.team,TYPE_PROJECTILE)
+		self.x = agent.x + agent.width/2 - self.width/2
+		self.y = agent.y + agent.height/2 - self.height/2
 		self.dmg = PROJECTILE_DAMAGE
 		self.agent = agent
 	def move(self):
@@ -352,10 +351,17 @@ class Resource(Objet):
 		Objet.__init__(self,x,y,0,0,0,0,TYPE_RESOURCE);
 		self.reward =  RESOURCE_REWARD
 		
+def q(state, action = None, team = 1):
+	global q_table_E1, q_table_E2
 
+	if team == 1: # EQUIPE BLEU
+		q_table = q_table_E1
+	elif team == 2: # EQUIPE ROUGE
+		q_table = q_table_E2
+	else: # error
+		print("ERROR in q function : equipe doit etre 1 ou 2")
+		return
 
-def q(state, action = None):
-	global q_table
 	if state.stateID not in q_table.keys():
 		q_table[state.stateID] = [0 for i in ACTIONS]
 		#print("state.stateID not in q_table.keys():" + str(q_table[state.stateID]))
@@ -375,24 +381,42 @@ def markov_process(state):
 		return np.argmax(q(state)) 
 
 def calcul_reward(current_state,next_state):
-	global q_table
 
 	reward = 0
+
+	agent = next_state.agent
+	#agentIndex = game.list_agent.index(agent)
+	#agentName = "Agent_" + str(agentIndex)
+	#if agent.team == 2:
+	#	agentName = "				" + agentName
 	# s'il a mange une pomme
 	if(next_state.agent.aMange):
-		reward = reward + 1000
+		if next_state.agent.team == 1:
+			reward = reward + 1000
+		else:
+			#reward = reward + 200
+			pass
+		#print(agentName + " a mangé")
+
 		next_state.agent.aMange = False
 	# s'il est touché par un projectile adverse
 	if(next_state.agent.estTouche):
 		reward = reward - 200
 		next_state.agent.estTouche = False
+		#print(agentName + " est touché")
 	# s'il meurt (touché trois fois)
 	if(next_state.agent.estMort):
 		reward = reward - 800
 		next_state.agent.estMort = False
+		#print(agentName + " est mort")
 	# s'il touche une cible
 	if(next_state.agent.cibleTouchee):
-		reward = reward + 500
+		if next_state.agent.team == 1:
+			#reward = reward + 100
+			pass
+		else:
+			reward = reward + 500
+		#print(agentName + " a touché une cible")
 		next_state.agent.cibleTouchee = False
 
 	#si il se rapproche des ressources
@@ -405,13 +429,21 @@ def calcul_reward(current_state,next_state):
 	#si un tir ennemy se rapproche de lui
 	if (next_state.D_projectile_min < current_state.D_projectile_min):
 		reward = reward - 3
-	#si perd pV
-	if (next_state.pv < current_state.pv):
-		reward = reward - 100
+	#else:
+	#	reward = reward + 3
+
 	#si orienté plus justement face a ressource
 	if(abs(next_state.A_resource_min) < abs(current_state.A_resource_min)):
 		reward = reward + 2
 	elif(abs(next_state.A_resource_min) > abs(current_state.A_resource_min)):
+		reward = reward - 2
+	else:
+		reward = reward - 0.02
+
+	#si orienté plus justement face a ennemi
+	if(abs(next_state.A_ennemy_min) < abs(current_state.A_ennemy_min)):
+		reward = reward + 2
+	elif(abs(next_state.A_ennemy_min) > abs(current_state.A_ennemy_min)):
 		reward = reward - 2
 	else:
 		reward = reward - 0.02
@@ -464,9 +496,13 @@ def takeAllActions(list_state):
 		game.list_agent[m].current_action = list_action[m] #met a jour l'action de l'agent dans la classe
 	return list_action
 
+
 def updateQTable(list_state, list_action, list_total_reward):
 	current_learning_rate = 0.25 #A changer
 	for m in range(len(game.list_agent)):
+		# get agent team
+		team = list_state[m].agent.team
+		
 		#CALCUL les nouvelles etats
 		next_state = State(list_state[m].agent,game.objectsList)
 		#CALCUL Reward R pour chaque agent
@@ -474,12 +510,24 @@ def updateQTable(list_state, list_action, list_total_reward):
 		#print("debug updateQtable : " + str(m) + " reward : " + str(reward))
 		list_total_reward[m] = list_total_reward[m] + reward
 		#CREATION NOUVEL ETAT POUR CHAQUE AGENT
-		q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state)) - q(list_state[m],list_action[m]))
+		#q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state)) - q(list_state[m],list_action[m]))
+		q(list_state[m], team=team)[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m], team=team) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state,team=team)) - q(list_state[m],list_action[m],team=team))
 		#q(list_state[m])[list_action[m]]
 		list_state[m] = next_state
 		#print("Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
 
 
+def save_q_tables():
+	global q_table_E1, q_table_E2
+	np.save('q_table_E1.npy', q_table_E1) 
+	np.save('q_table_E2.npy', q_table_E2)
+	print("saved Q-tables")
+
+def load_q_tables():
+	global q_table_E1, q_table_E2
+	q_table_E1 = np.load('q_table_E1.npy').item()
+	q_table_E2 = np.load('q_table_E2.npy').item()
+	print("loaded Q-tables")
 
 
 
@@ -498,10 +546,10 @@ class Game():
 	# initialisations : 
 	# "current" : la valeur utilisee par le jeu
 	# "window" : la valeur qui l'utilisateur change a la fenettre
-	current_nb_agents_E1 = 1 # equipe 1
-	window_nb_agents_E1 = 1
-	current_nb_agents_E2 = 1 # equipe 2
-	window_nb_agents_E2 = 1
+	current_nb_agents_E1 = 2 # equipe 1
+	window_nb_agents_E1 = 2
+	current_nb_agents_E2 = 2 # equipe 2
+	window_nb_agents_E2 = 2
 	current_resource_spawn_rate = 0
 	window_resource_spawn_rate = 0
 	current_learning_rate = 0.005
@@ -655,7 +703,10 @@ if __name__ == '__main__':
 	ui.setupUi(fenetre)
 	game.update_parametres()
 	osSystem("clear")
+	if False:
+		load_q_tables()
 	qtrain()
+	#save_q_tables()
 	def timeout():
 		if(game.isPlay):
 			# "loop" du jeu
