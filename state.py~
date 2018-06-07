@@ -1,0 +1,164 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# PROJET MAJEURE - Reinforcement Learning
+# ERBACHER, Pierre
+# FOLETTO PIMENTA, Pedro
+# TIZON, Nicolas
+
+import sys
+import time
+from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
+from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
+from PyQt5.QtCore import Qt, QTimer
+from interface import *
+from state import *
+import numpy as np
+import random as rd
+import math
+
+
+class State():
+	table_angle_ally = []
+	table_dist_ally = []
+	table_angle_ennemy = []
+	table_dist_ennemy = []
+	table_angle_tir = []
+	table_dist_tir = []
+	table_angle_resource = []
+	table_dist_resource = []
+	primes = [2, 3, 5, 7, 11, 13, 17, 19]
+	
+	thresholds = {"distance_nearest_ennemy": [20, 80, 150, 250, 400, 1000],
+			"angle_nearest_ennemy": [-180, -90, -50, -20, -5, 0, 5, 20, 50, 90, 180],
+			"distance_nearest_resource": [20, 80, 150, 250, 400, 1000],
+			"angle_nearest_resource": [-180, -90, -50, -20, -5, 0, 5, 20, 50, 90, 180],
+			"distance_nearest_tir": [20, 80, 150, 250, 400, 1000],
+			"angle_nearest_tir": [-180, -90, -50, -20, -5, 0, 5, 20, 50, 90, 180]}
+	
+	"""
+	thresholds = {"distance_nearest_ennemy": [25, 500, np.inf],
+			"angle_nearest_ennemy": [0, 180],
+			"distance_nearest_resource": [25, 500, np.inf],
+			"angle_nearest_resource": [0, 180],
+			"distance_nearest_tir": [25, 500, np.inf],
+			"angle_nearest_tir": [0, 180]}
+	"""
+	def __init__(self,agent,objectsList):
+		self.total_pv_ennemy = 0
+		self.agent = agent
+		#Mise à vide des listes. Ca marchait pas autrement
+		self.table_dist_ally = []
+		self.table_angle_ally = []
+		self.table_dist_ennemy = []
+		self.table_angle_ennemy = []
+		self.table_dist_tir = []
+		self.table_angle_tir = []
+		self.table_dist_resource = []
+		self.table_angle_resource = []
+
+		for i in objectsList:
+			if (i.type_obj == 1): #AGENT DE LA MEME EQUIPE
+				if (i.team == agent.team):
+					self.table_angle_ally.append(agent.angleWithObj(i))
+					self.table_dist_ally.append(agent.distanceWithObj(i))
+				else:
+					self.table_angle_ennemy.append(agent.angleWithObj(i))
+					self.table_dist_ennemy.append(agent.distanceWithObj(i))
+					self.total_pv_ennemy = self.total_pv_ennemy + i.pv
+			if (i.type_obj == 2): #TIR
+				if(i.team == agent.team):
+					pass
+				else:
+					self.table_angle_tir.append(agent.angleWithObj(i))
+					self.table_dist_tir.append(agent.distanceWithObj(i))
+
+			if (i.type_obj == 0): #RESOURCE
+				self.table_angle_resource.append(agent.angleWithObj(i))
+				self.table_dist_resource.append(agent.distanceWithObj(i))
+			"""
+			if (i.type_obj == 3)#BLOCK
+				table_angle_tir.append(agent.angleWithObj(i))
+				table_dist_tir.append(agent.distanceWithObj(i))
+			"""
+		
+		#STATE DEFINITION: #variables discretisees
+		self.state_distance_nearest_ennemy = 0
+		self.state_angle_nearest_ennemy = 0
+		self.state_distance_nearest_resource = 0
+		self.state_angle_nearest_resource = 0
+		self.state_distance_nearest_tir = 0
+		self.state_angle_nearest_tir = 0
+		self.state_pv = 0
+		self.state_total_pv_ennemy = 0
+
+		#position ennemi le plus proche
+		if(len(self.table_dist_ennemy) > 0): # s'il y a un ennemy
+			self.distance_nearest_ennemy = min(self.table_dist_ennemy)
+			self.angle_nearest_ennemy = self.table_angle_ennemy[self.table_dist_ennemy.index(self.distance_nearest_ennemy)]
+		else:
+			self.distance_nearest_ennemy = 1000
+			self.angle_nearest_ennemy = 0
+		#position moyenne allié
+		#if(len(self.table_dist_ally) > 0): # s'il y a un ally
+			#self.mean_distance_ally = sum(self.table_dist_ally)/len(self.table_dist_ally)
+			#self.mean_angle_ally = sum(self.table_angle_ally)/len(self.table_dist_ally)
+		#else:
+			#self.mean_distance_ally = 1000
+			#self.mean_angle_ally = 0
+		#position ressource la plus proche
+		if(len(self.table_dist_resource) > 0): # s'il y a un resource
+			self.distance_nearest_resource = min(self.table_dist_resource)
+			self.angle_nearest_resource = self.table_angle_resource[self.table_dist_resource.index(self.distance_nearest_resource)]
+		else:
+			self.distance_nearest_resource = 1000
+			self.angle_nearest_resource = 0
+		#position tir le plus proche
+		if(len(self.table_dist_tir) > 0): # s'il y a un tir
+			self.distance_nearest_tir = min(self.table_dist_tir)
+			self.angle_nearest_tir = self.table_angle_tir[self.table_dist_tir.index(self.distance_nearest_tir)]
+		else:
+			self.distance_nearest_tir = 1000
+			self.angle_nearest_tir = 0
+		#Point de vie
+		self.pv = agent.pv
+
+
+		self.stateID = 1
+
+		for k in self.thresholds["distance_nearest_ennemy"]:
+			if self.distance_nearest_ennemy <= k:
+				self.state_distance_nearest_ennemy = self.thresholds["distance_nearest_ennemy"].index(k)
+				self.stateID = self.stateID * (self.primes[0]**self.state_distance_nearest_ennemy)
+				break
+		for k in self.thresholds["angle_nearest_ennemy"]:
+			if self.angle_nearest_ennemy <= k:
+				self.state_angle_nearest_ennemy = self.thresholds["angle_nearest_ennemy"].index(k)
+				self.stateID = self.stateID * (self.primes[1]**self.state_angle_nearest_ennemy)
+				break
+		for k in self.thresholds["distance_nearest_resource"]:
+			if self.distance_nearest_resource <= k:
+				self.state_distance_nearest_resource = self.thresholds["distance_nearest_resource"].index(k)
+				self.stateID = self.stateID * (self.primes[2]**self.state_distance_nearest_resource)
+				break
+		for k in self.thresholds["angle_nearest_resource"]:
+
+			if self.angle_nearest_resource <= k:
+				self.state_angle_nearest_resource = self.thresholds["angle_nearest_resource"].index(k)
+				self.stateID = self.stateID * (self.primes[3]**self.state_angle_nearest_resource)
+				break
+		for k in self.thresholds["distance_nearest_tir"]:
+			if self.distance_nearest_tir <= k:
+				self.state_distance_nearest_tir = self.thresholds["distance_nearest_tir"].index(k)
+				self.stateID = self.stateID * (self.primes[4]**self.state_distance_nearest_tir)
+				break
+		for k in self.thresholds["angle_nearest_tir"]:
+			if self.angle_nearest_tir <= k:
+				self.state_angle_nearest_tir = self.thresholds["angle_nearest_tir"].index(k)
+				self.stateID = self.stateID * (self.primes[5]**self.state_angle_nearest_tir)
+				break
+
+		print("Stats")
+		print(self.distance_nearest_resource, self.state_distance_nearest_resource)
+		print(self.angle_nearest_resource, self.state_angle_nearest_resource)
+		

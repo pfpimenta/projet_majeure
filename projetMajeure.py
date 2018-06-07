@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
 from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
 from PyQt5.QtCore import Qt, QTimer
 from interface import *
+from state import *
 import numpy as np
 import random as rd
 import math
@@ -65,13 +66,22 @@ IMAGEPATH_RESOURCE = "Images/Resource.png"
 
 #Action possible
 ## Modifié pour commencer avec ACTION_
+"""
 ACTION_STOP = 0
 ACTION_MOVE = 1
 ACTION_TRIGO = 2
 ACTION_HORAIRE = 3
 ACTION_SHOOT = 4
 ACTION_BUILD = 5
-ACTIONS = [ACTION_STOP,ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE,ACTION_SHOOT,ACTION_BUILD]
+"""
+
+ACTION_STOP = 999
+ACTION_SHOOT = 999
+ACTION_BUILD = 8008135
+ACTION_MOVE = 0
+ACTION_TRIGO = 1
+ACTION_HORAIRE = 2
+ACTIONS = [ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE]
 
 
 
@@ -84,8 +94,8 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 100
-TRAINING_N_STEP = 10
+TRAINING_N_EPISODE = 10
+TRAINING_N_STEP = 1000
 TRAINING_GAMMA = 0.5
 
 # ???
@@ -215,23 +225,28 @@ class Agent(Objet):
 	def execute_action(self, state):
 	# faire une action
 		#self.current_action = self.take_action(state) # choisir l'action
+		print(" DEBUG ACTION : " + str(self.current_action))
 		if (self.current_action == ACTION_STOP):
 			self.dy = 0
 			self.dx = 0
 		if (self.current_action == ACTION_MOVE):
-			#self.dy =  int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle)))) #maj des prochains dépacment
-			#self.dx = int(round(AGENT_VITESSE*np.cos(np.deg2rad(self.angle))))
 			self.dy =  int(round(-AGENT_VITESSE*np.cos(np.deg2rad(self.angle)))) #maj des prochains dépacment
 			self.dx = int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle))))
 		if (self.current_action == ACTION_TRIGO):
+			self.dy = 0
+			self.dx = 0
 			self.angle = self.angle - AGENT_DR
 			if (self.angle < -360):
 				self.angle = self.angle + 360
 		if (self.current_action == ACTION_HORAIRE):
+			self.dy = 0
+			self.dx = 0
 			self.angle = self.angle + AGENT_DR
 			if (self.angle > 360):
 				self.angle = self.angle - 360
 		if(self.current_action == ACTION_SHOOT):
+			self.dy = 0
+			self.dx = 0
 			self.shoot()
 			
 	"""
@@ -290,152 +305,19 @@ class Resource(Objet):
 	def __init__(self,x=0,y=0):
 		Objet.__init__(self,x,y,0,0,0,0,TYPE_RESOURCE);
 		self.reward =  RESOURCE_REWARD
-
-
-
-class State():
-	table_angle_ally = []
-	table_dist_ally = []
-	table_angle_ennemy = []
-	table_dist_ennemy = []
-	table_angle_tir = []
-	table_dist_tir = []
-	table_angle_resource = []
-	table_dist_resource = []
-	primes = [2, 3, 5, 7, 11, 13, 17, 19]
-	"""
-	thresholds = {"distance_nearest_ennemy": [25, 50, 80, 150, 250, 500, np.inf],
-			"angle_nearest_ennemy": [-90, 0, 90, 180],
-			"distance_nearest_resource": [25, 50, 80, 150, 250, 500, np.inf],
-			"angle_nearest_resource": [-90, 0, 90, 180],
-			"distance_nearest_tir": [25, 50, 80, 150, 250, 500, np.inf],
-			"angle_nearest_tir": [-90, 0, 90, 180]}
-	"""
-	thresholds = {"distance_nearest_ennemy": [25, 500, np.inf],
-			"angle_nearest_ennemy": [0, 180],
-			"distance_nearest_resource": [25, 500, np.inf],
-			"angle_nearest_resource": [0, 180],
-			"distance_nearest_tir": [25, 500, np.inf],
-			"angle_nearest_tir": [0, 180]}
-	def __init__(self,agent,objectsList):
-		self.total_pv_ennemy = 0
-		self.agent = agent
-		for i in objectsList:
-			if (i.type_obj == 1): #AGENT DE LA MEME EQUIPE
-				if (i.team == agent.team):
-					self.table_angle_ally.append(agent.angleWithObj(i))
-					self.table_dist_ally.append(agent.distanceWithObj(i))
-				else:
-					self.table_angle_ennemy.append(agent.angleWithObj(i))
-					self.table_dist_ennemy.append(agent.distanceWithObj(i))
-					self.total_pv_ennemy = self.total_pv_ennemy + i.pv
-			if (i.type_obj == 2): #TIR
-				if(i.team == agent.team):
-					pass
-				else:
-					self.table_angle_tir.append(agent.angleWithObj(i))
-					self.table_dist_tir.append(agent.distanceWithObj(i))
-
-			if (i.type_obj == 0): #RESOURCE
-				self.table_angle_resource.append(agent.angleWithObj(i))
-				self.table_dist_resource.append(agent.distanceWithObj(i))
-			"""
-			if (i.type_obj == 3)#BLOCK
-				table_angle_tir.append(agent.angleWithObj(i))
-				table_dist_tir.append(agent.distanceWithObj(i))
-			"""
-		
-		#STATE DEFINITION:
-		self.state_distance_nearest_ennemy = 0
-		self.state_angle_nearest_ennemy = 0
-		self.state_distance_nearest_resource = 0
-		self.state_angle_nearest_resource = 0
-		self.state_distance_nearest_tir = 0
-		self.state_angle_nearest_tir = 0
-		self.state_pv = 0
-		self.state_total_pv_ennemy = 0
-
-		#position ennemi le plus proche
-		if(len(self.table_dist_ennemy) > 0): # s'il y a un ennemy
-			self.distance_nearest_ennemy = min(self.table_dist_ennemy)
-			self.angle_nearest_ennemy = self.table_angle_ennemy[self.table_dist_ennemy.index(self.distance_nearest_ennemy)]
-		else:
-			self.distance_nearest_ennemy = 1000
-			self.angle_nearest_ennemy = 0
-		#position moyenne allié
-		#if(len(self.table_dist_ally) > 0): # s'il y a un ally
-			#self.mean_distance_ally = sum(self.table_dist_ally)/len(self.table_dist_ally)
-			#self.mean_angle_ally = sum(self.table_angle_ally)/len(self.table_dist_ally)
-		#else:
-			#self.mean_distance_ally = 1000
-			#self.mean_angle_ally = 0
-		#position ressource la plus proche
-		if(len(self.table_dist_resource) > 0): # s'il y a un resource
-			self.distance_nearest_resource = min(self.table_dist_resource)
-			self.angle_nearest_resource = self.table_angle_resource[self.table_dist_resource.index(self.distance_nearest_resource)]
-		else:
-			self.distance_nearest_resource = 1000
-			self.angle_nearest_resource = 0
-		#position tir le plus proche
-		if(len(self.table_dist_tir) > 0): # s'il y a un tir
-			self.distance_nearest_tir = min(self.table_dist_tir)
-			self.angle_nearest_tir = self.table_angle_tir[self.table_dist_tir.index(self.distance_nearest_tir)]
-		else:
-			self.distance_nearest_tir = 1000
-			self.angle_nearest_tir = 0
-		#Point de vie
-		self.pv = agent.pv
-
-
-		self.stateID = 1
-
-		for k in self.thresholds["distance_nearest_ennemy"]:
-			if self.distance_nearest_ennemy <= k:
-				self.state_distance_nearest_ennemy = self.thresholds["distance_nearest_ennemy"].index(k)
-				self.stateID = self.stateID * (self.primes[0]**self.state_distance_nearest_ennemy)
-				break
-		for k in self.thresholds["angle_nearest_ennemy"]:
-			if self.angle_nearest_ennemy <= k:
-				self.state_angle_nearest_ennemy = self.thresholds["angle_nearest_ennemy"].index(k)
-				self.stateID = self.stateID * (self.primes[1]**self.state_angle_nearest_ennemy)
-				break
-		for k in self.thresholds["distance_nearest_resource"]:
-			if self.distance_nearest_resource <= k:
-				self.state_distance_nearest_resource = self.thresholds["distance_nearest_resource"].index(k)
-				self.stateID = self.stateID * (self.primes[2]**self.state_distance_nearest_resource)
-				break
-		for k in self.thresholds["angle_nearest_resource"]:
-
-			if self.angle_nearest_resource <= k:
-				self.state_angle_nearest_resource = self.thresholds["angle_nearest_resource"].index(k)
-				self.stateID = self.stateID * (self.primes[3]**self.state_angle_nearest_resource)
-				break
-		for k in self.thresholds["distance_nearest_tir"]:
-			if self.distance_nearest_tir <= k:
-				self.state_distance_nearest_tir = self.thresholds["distance_nearest_tir"].index(k)
-				self.stateID = self.stateID * (self.primes[4]**self.state_distance_nearest_tir)
-				break
-		for k in self.thresholds["angle_nearest_tir"]:
-			if self.angle_nearest_tir <= k:
-				self.state_angle_nearest_tir = self.thresholds["angle_nearest_tir"].index(k)
-				self.stateID = self.stateID * (self.primes[5]**self.state_angle_nearest_tir)
-				break
-
-		print("Stats")
-		print(self.distance_nearest_resource, self.state_distance_nearest_resource)
-		print(self.angle_nearest_resource, self.state_angle_nearest_resource)
 		
 
 
 def q(state, action = None):
 	global q_table
 	if state.stateID not in q_table.keys():
-		q_table[state.stateID] = np.zeros(len(ACTIONS))
-
+		q_table[state.stateID] = [0 for i in ACTIONS]
+		#print("state.stateID not in q_table.keys():" + str(q_table[state.stateID]))
 	if action is None:
+		#print("action == None : " + str(q_table[state.stateID]))
 		return q_table[state.stateID]
 
-	print(q_table[state.stateID])
+	#print(q_table[state.stateID])
 	return q_table[state.stateID][action]
 
 
@@ -451,8 +333,8 @@ def calcul_reward(current_state,next_state):
 
 	reward = 0
 	#si il se rapproche des ressources
-	#if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
-		#reward  = reward + 10
+	if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
+		reward  = reward + 10
 	#else:
 		#reward = reward - 10
 	#si un tir ennemy se rapproche de lui
@@ -462,8 +344,8 @@ def calcul_reward(current_state,next_state):
 	if (next_state.pv < current_state.pv):
 		reward = reward - 100
 	#si orienté plus justement face a ressource
-	#if(next_state.angle_nearest_resource < current_state.angle_nearest_resource):
-		#reward = reward + 2
+	if(abs(next_state.angle_nearest_resource) < abs(current_state.angle_nearest_resource)):
+		reward = reward + 2
 	# COMPARER les totals rewards de chaque équipe	(a faire)
 	if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
 		reward = reward + 100
@@ -494,7 +376,7 @@ def qtrain():
 			list_action = takeAllActions(list_state)
 			game.update()
 			updateQTable(list_state, list_action, list_total_reward)
-			print("Episode: "+ str(i))
+			print("Episode: "+ str(i) + " q table : " + str(q_table))
 
 
 
@@ -554,8 +436,18 @@ class Game():
 	window_time_modulo = 1 # pour afficher a chaque X frames
 	current_nombre_depisodes = 0
 	window_nombre_depisodes = 0
+
 	def __init__(self):
 		self.creer_agents()
+		for i in range(3):
+			self.creer_resource()
+
+	def creer_resource(self):
+		x = rd.randint(0, GAME_AREA_WIDTH - RESOURCE_WIDTH)
+		y = rd.randint(0, GAME_AREA_WIDTH - 100 - RESOURCE_WIDTH)
+		resource = Resource(x,y)
+		self.objectsList.append(resource)
+		self.list_resource.append(resource)
 
 	def creer_agents(self):
 		for i in range(self.current_nb_agents_E1):
@@ -605,6 +497,8 @@ class Game():
 			print("time_modulo : " + str(self.current_time_modulo))
 			print("nombre_depisodes : " + str(self.current_nombre_depisodes))
 		self.creer_agents()
+		for i in range(3):
+			self.creer_resource()
 		ui.gameWidget.update()
 		pass #TODO ?
 	def update(self):
@@ -623,11 +517,7 @@ class Game():
 		if m < self.current_resource_spawn_rate:
 			#x = rd.randint(150, GAME_AREA_WIDTH - 150 - RESOURCE_WIDTH)
 			#y = rd.randint(0, 100 - RESOURCE_WIDTH)
-			x = rd.randint(0, GAME_AREA_WIDTH - RESOURCE_WIDTH)
-			y = rd.randint(0, GAME_AREA_WIDTH - 100 - RESOURCE_WIDTH)
-			resource = Resource(x,y)
-			self.objectsList.append(resource)
-			self.list_resource.append(resource)
+			self.creer_resource()
 		# collision agent-ressource
 		for agent in self.list_agent:
 			for resource in self.list_resource:
