@@ -20,6 +20,7 @@ GAME_AREA_WIDTH = 500
 GAME_AREA_HEIGHT = 500
 
 TIME_PERIOD = 100 # miliseconds entre frames
+INIT_LEARNING_RATE = 0.005
 
 IMAGEPATH_BACKGROUND = "Images/background.jpg"
 
@@ -87,6 +88,7 @@ class Ui_MainWindow(object):
 		self.SpinBoxLearningRate.setGeometry(QtCore.QRect(690, 200, 141, 27))
 		self.SpinBoxLearningRate.setDecimals(10)
 		self.SpinBoxLearningRate.setObjectName("SpinBoxLearningRate")
+		self.SpinBoxTimePeriod.setValue(INIT_LEARNING_RATE) #ajoutee
 		self.SpinBoxTimePeriod = QtWidgets.QDoubleSpinBox(self.centralwidget)
 		self.SpinBoxTimePeriod.valueChanged.connect(self.updateTimePeriod) # ajoutee
 		self.SpinBoxTimePeriod.setGeometry(QtCore.QRect(650, 320, 91, 27))
@@ -171,7 +173,7 @@ class gameWidget(QWidget):
 		#self.background_pm = QPixmap()
 		#self.brush = QBrush(Qt.SolidPattern)
 	
-		#self.setGeometry(0, 0, 100, 100)
+		self.setGeometry(0, 0, 100, 100)
 		#self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 		self.resize(GAME_AREA_WIDTH, GAME_AREA_HEIGHT)
 		self.move(300, 300)

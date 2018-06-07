@@ -233,6 +233,7 @@ class Agent(Objet):
 				self.angle = self.angle - 360
 		if(self.current_action == ACTION_SHOOT):
 			self.shoot()
+			
 	"""
 	def take_action(self, state):
 	# choisir une action
@@ -445,9 +446,9 @@ def markov_process(state):
 	else:
 		return np.argmax(q(state)) 
 
-def calcul_reward(current_state, action):
+def calcul_reward(current_state,next_state):
 	global q_table
-	next_state = State(current_state.agent,game.objectsList)
+
 	reward = 0
 	#si il se rapproche des ressources
 	#if (next_state.distance_nearest_resource < current_state.distance_nearest_resource):
@@ -467,41 +468,57 @@ def calcul_reward(current_state, action):
 	if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
 		reward = reward + 100
 
-	return reward , next_state
+	return reward
 
 
 
 
 #entrainement de tout les agents
 def qtrain():
-	list_state = [] 
-	list_action = []
 	global q_table
-	current_learning_rate = 0.5 #A changer
+	
 	list_total_reward = np.zeros((1,len(game.list_agent)),dtype=int)
-
+	list_action = [None for agent in game.list_agent]
+	list_state = [None for agent in game.list_agent]
+	#Pour chaque partie
 	for i in range(TRAINING_N_EPISODE):
-		del list_state[:]
+		#vider les lists
 		for k in range(len(game.list_agent)):
-			list_state.append(State(game.list_agent[k],game.objectsList)); #Stock les etats de chaque agent
+			list_state[k] = None 
+			list_action[k] = None 
+		#initialisation ETAT agent
+		for k in range(len(game.list_agent)):
+			list_state[k] = State(game.list_agent[k],game.objectsList); #Stock les etats de chaque agent
+		#Debut partie		
+		for j in range(TRAINING_N_STEP):
+			list_action = takeAllActions(list_state)
+			game.update()
+			updateQTable(list_state, list_action, list_total_reward)
+			print("Episode: "+ str(i))
 
-			for j in range(TRAINING_N_STEP):
-				for m in range(len(list_state)): # pour chaque etat d'agent choisi une action associé grace a la Q_table
-					list_action.append(markov_process(list_state[m]))
-					#FAIRE ACTION CHOISI POUR CHAQUE AGENT (UPDATEGAME)
-					game.list_agent[m].current_action = list_action[m] #met a jour l'action de l'agent dans la classe
-				 	############A FAIRE######################
-				game.update()
 
-				#CALCUL Reward R pour chaque agent
-				for m in range(len(game.list_agent)):
-					reward , next_state =  calcul_reward(list_state[m],list_action[m])
-					list_total_reward[m] = list_total_reward[m] + reward
-					#CREATION NOUVEL ETAT POUR CHAQUE AGENT
-					q(list_state[m])[list_action[m]] = q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * np.max(q(next_state)) - q(list_state[m],list_action[m]))
-					list_state[m] = next_state
-					print("Episode: "+ str(i) +"Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
 
+def takeAllActions(list_state):
+ # pour chaque etat d'agent choisi une action associé grace a la Q_table
+	list_action = [None for agent in game.list_agent]
+	for m in range(len(list_state)):
+		list_action[m] = markov_process(list_state[m])
+		game.list_agent[m].current_action = list_action[m] #met a jour l'action de l'agent dans la classe
+	return list_action
+
+def updateQTable(list_state, list_action, list_total_reward):
+	current_learning_rate = 0.5 #A changer
+	for m in range(len(game.list_agent)):
+		#CALCUL les nouvelles etats
+		next_state = State(list_state[m].agent,game.objectsList)
+		#CALCUL Reward R pour chaque agent
+		reward =  calcul_reward(list_state[m],next_state)
+		list_total_reward[m] = list_total_reward[m] + reward
+		#CREATION NOUVEL ETAT POUR CHAQUE AGENT
+		q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * np.max(q(next_state)) - q(list_state[m],list_action[m]))
+		#q(list_state[m])[list_action[m]]
+		list_state[m] = next_state
+		print("Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
 
 
 
@@ -527,8 +544,8 @@ class Game():
 	window_nb_agents_E2 = 0
 	current_resource_spawn_rate = 0
 	window_resource_spawn_rate = 0
-	current_learning_rate = 0
-	window_learning_rate = 0
+	current_learning_rate = 0.005
+	window_learning_rate = 0.005
 	current_random_path_prob = 0 # prob de l'exploration de boltzman
 	window_random_path_prob = 0 # prob de l'exploration de boltzman
 	current_time_period = 100 # temps entre frames
@@ -603,7 +620,7 @@ class Game():
 			objet.move()
 		# Ajoute des ressources
 		m = rd.uniform(0,1)
-		if m < 0.005:
+		if m < self.current_resource_spawn_rate:
 			#x = rd.randint(150, GAME_AREA_WIDTH - 150 - RESOURCE_WIDTH)
 			#y = rd.randint(0, 100 - RESOURCE_WIDTH)
 			x = rd.randint(0, GAME_AREA_WIDTH - RESOURCE_WIDTH)
