@@ -8,6 +8,7 @@
 
 import sys
 import time
+#import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication
 from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPixmap
 from PyQt5.QtCore import Qt, QTimer
@@ -35,6 +36,8 @@ AGENT_PV_INITIAL = 3
 AGENT_WIDTH = 32
 AGENT_HEIGHT = 32
 AGENT_VITESSE = 10
+NB_AGENTS_BLEUS = 1
+NB_AGENTS_ROUGES = 0
 #AGENT_DR = np.pi/30
 AGENT_DR = 5 #en degrés
 
@@ -50,7 +53,10 @@ PROJECTILE_VITESSE = 20
 RESOURCE_WIDTH = 24
 RESOURCE_HEIGHT = 24
 RESOURCE_REWARD = 400
+NB_MAX_RESOURCES = 3
 
+global startTime
+startTime = 0
 
 
 # TEAM
@@ -98,15 +104,19 @@ TYPE_BLOCK = 3
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
 TRAINING_N_EPISODE = 1000
-TRAINING_N_STEP = 500
-TRAINING_GAMMA = 0.97
+TRAINING_N_STEP = 800
+TRAINING_GAMMA = 0.95
+TRAINING_LEARNING_RATE = 0.01
 
 #N_STATE = len([0:np.sqrt(H*H+W*W):])
 global q_table_E1, q_table_E2
 q_table_E1 = {} #equipe bleu
 q_table_E2 = {} #equipe rouge
-eps = 0.2
+eps = 0.05
 
+global total_reward_bleu, total_reward_rouge
+total_reward_bleu = []
+total_reward_rouge = []
 
 class Objet:
 # classe pour tout les object qui sont dans l'environnement
@@ -216,6 +226,7 @@ class Objet:
 class Agent(Objet):
 # classe pour les agents
 	current_action = 0
+	aTire = False
 	aMange = False
 	estTouche = False
 	estMort = False
@@ -227,6 +238,12 @@ class Agent(Objet):
 		self.pv = AGENT_PV_INITIAL
 		self.reload = 0
 		self.reloadMax = 4
+		self.aMange = False
+		self.estTouche = False
+		self.estMort = False
+		self.cibleTouchee = False
+		self.pommesMangees = 0
+		self.victimes = 0
 
 	def shoot(self):
 		if self.reload == 0:
@@ -235,12 +252,13 @@ class Agent(Objet):
 			game.objectsList.append(projectile)
 			game.list_projectile.append(projectile)
 
-	def takeDamage(self, dmg):
-		self.pv = self.pv - 1
+	def takeDamage(self, p):
+		self.pv = self.pv - p.dmg
 		self.estTouche = True
 		if self.pv < 0:
 			self.spawn()
 			self.estMort = True
+			p.agent.victimes = p.agent.victimes+1
 	
 	def spawn(self):
 		angle = rd.randint(0,360)
@@ -265,25 +283,27 @@ class Agent(Objet):
 		if (self.current_action == ACTION_STOP):
 			self.dy = 0
 			self.dx = 0
-		if (self.current_action == ACTION_MOVE):
+		elif (self.current_action == ACTION_MOVE):
 			self.dy =  int(round(-AGENT_VITESSE*np.cos(np.deg2rad(self.angle)))) #maj des prochains dépacment
 			self.dx = int(round(AGENT_VITESSE*np.sin(np.deg2rad(self.angle))))
-		if (self.current_action == ACTION_TRIGO):
+		elif (self.current_action == ACTION_TRIGO):
 			self.dy = 0
 			self.dx = 0
 			self.angle = self.angle - AGENT_DR
 			if (self.angle < -360):
 				self.angle = self.angle + 360
-		if (self.current_action == ACTION_HORAIRE):
+		elif (self.current_action == ACTION_HORAIRE):
 			self.dy = 0
 			self.dx = 0
 			self.angle = self.angle + AGENT_DR
 			if (self.angle > 360):
 				self.angle = self.angle - 360
-		if(self.current_action == ACTION_SHOOT):
+		elif(self.current_action == ACTION_SHOOT):
 			self.dy = 0
 			self.dx = 0
 			self.shoot()
+		else:
+			print("ERR: INCORRECT ACTION BEING EXECUTED")
 			
 	"""
 	def take_action(self, state):
@@ -379,6 +399,7 @@ def markov_process(state, agent, isTraining):
 		qt = q(state, team=agent.team)
 		actions = np.argwhere(qt == np.amax(qt))
 		a = rd.choice(actions)
+		a = a[0]
 		return a
 
 def calcul_reward(current_state,next_state):
@@ -386,64 +407,128 @@ def calcul_reward(current_state,next_state):
 	reward = 0
 
 	agent = next_state.agent
-	#agentIndex = game.list_agent.index(agent)
-	#agentName = "Agent_" + str(agentIndex)
-	#if agent.team == 2:
-	#	agentName = "				" + agentName
-	# s'il a mange une pomme
-	if(next_state.agent.aMange):
-		reward = reward + 1000
-		next_state.agent.aMange = False
 
-	# s'il est touché par un projectile adverse
-	if(next_state.agent.estTouche):
-		reward = reward - 200
-		next_state.agent.estTouche = False
-		#print(agentName + " est touché")
-	# s'il meurt (touché trois fois)
-	if(next_state.agent.estMort):
-		reward = reward - 800
-		next_state.agent.estMort = False
-		#print(agentName + " est mort")
-	# s'il touche une cible
-	if(next_state.agent.cibleTouchee):
-		reward = reward + 500
-		#print(agentName + " a touché une cible")
-		next_state.agent.cibleTouchee = False
 
-	#si il se rapproche des ressources
-	if (next_state.D_resource_min < current_state.D_resource_min):
-		reward  = reward + 10
-	elif (next_state.D_resource_min > current_state.D_resource_min):
-		reward = reward - 10
-	else:
-		reward = reward - 0.1
+	#AGENT BLEU
+	#Récompensé pour manger des ressources
+	#Aucune récompense pour tuer l'adversaire
+	#Pénalisé pour être blessé
 
-	#si un tir ennemy se rapproche de lui
-	if (next_state.D_projectile_min < current_state.D_projectile_min):
-		reward = reward - 3
-	#else:
-	#	reward = reward + 3
+	if agent.team == 1:
 
-	#si orienté plus justement face a ressource
-	if(abs(next_state.A_resource_min) < abs(current_state.A_resource_min)):
-		reward = reward + 2
-	elif(abs(next_state.A_resource_min) > abs(current_state.A_resource_min)):
-		reward = reward - 2
-	else:
-		reward = reward - 0.02
+		#A Mangé
+		if(next_state.agent.aMange):
+			reward = reward + 150
+			#print(agentName + " a mangé")
+		
+		#A Tiré
+		if(agent.aTire):
+			reward = reward - 10
+		"""
+		#Distance Ressource
+		d = (current_state.D_resource_min - next_state.D_resource_min - 2)
+		reward = reward - d
+		"""
+		"""
+		#Angle Ressource
+		if(abs(next_state.A_resource_min) < abs(current_state.A_resource_min) and not agent.estMort):
+			reward = reward + 2
+		elif(abs(next_state.A_resource_min) > abs(current_state.A_resource_min) and not agent.estMort):
+			reward = reward - 2
+		else:
+			reward = reward - 0.02
 
-#si orienté plus justement face a ennemi
-	if(abs(next_state.A_ennemy_min) < abs(current_state.A_ennemy_min)):
-		reward = reward + 5
-	elif(abs(next_state.A_ennemy_min) > abs(current_state.A_ennemy_min)):
-		reward = reward - 5
-	else:
-		reward = reward - 0.1
-	# COMPARER les totals rewards de chaque équipe	(a faire)
-	#if(next_state.total_pv_ennemy < current_state.total_pv_ennemy):
-	#	reward = reward + 100
+		#Distance Ennemi
+		if (next_state.D_ennemy_min < current_state.D_ennemy_min and not agent.estMort):
+			reward  = reward + 5
+		elif (next_state.D_ennemy_min > current_state.D_ennemy_min and not agent.estMort):
+			reward = reward - 5
+		else:
+			reward = reward - 0.05
 
+		#Angle Ennemi
+		if (next_state.A_ennemy_min > current_state.A_ennemy_min and not agent.estMort):
+			reward  = reward + 1
+		elif (next_state.A_ennemy_min < current_state.A_ennemy_min and not agent.estMort):
+			reward = reward - 1
+		else:
+			reward = reward - 0.01
+		"""
+		"""
+		#Distance Ressource
+		if (next_state.S_D_resource_min < current_state.S_D_resource_min and not agent.estMort):
+			reward  = reward + 100
+		elif (next_state.S_D_resource_min > current_state.S_D_resource_min and not agent.estMort):
+			reward = reward - 100
+		else:
+			reward = reward - 1
+
+		#Angle Ressource
+		if(abs(next_state.S_A_resource_min) < abs(current_state.S_A_resource_min) and not agent.estMort):
+			reward = reward + 20
+		elif(abs(next_state.S_A_resource_min) > abs(current_state.S_A_resource_min) and not agent.estMort):
+			reward = reward - 20
+		else:
+			reward = reward - 0.2
+
+		#Distance Ennemi
+		if (next_state.S_D_ennemy_min < current_state.S_D_ennemy_min and not agent.estMort):
+			reward  = reward + 50
+		elif (next_state.S_D_ennemy_min > current_state.S_D_ennemy_min and not agent.estMort):
+			reward = reward - 50
+		else:
+			reward = reward - 0.5
+
+		#Angle Ennemi
+		if (next_state.S_A_ennemy_min > current_state.S_A_ennemy_min and not agent.estMort):
+			reward  = reward + 10
+		elif (next_state.S_A_ennemy_min < current_state.S_A_ennemy_min and not agent.estMort):
+			reward = reward - 10
+		else:
+			reward = reward - 0.1
+	"""
+	#AGENT ROUGE
+	#Aucune récompense pour manger des ressources
+	#Récompensé pour tuer l'ennemi
+	#Pénalisé pour être blessé
+	elif agent.team == 2:
+	
+		# Est Touché
+		if(next_state.agent.estTouche):
+			reward = reward - 200
+			#print(agentName + " est touché")
+
+		# Est Mort (touché trois fois)
+		if(next_state.agent.estMort):
+			reward = reward - 800
+			#print(agentName + " est mort")
+
+		# Cible Touchée
+		if(next_state.agent.cibleTouchee):
+			reward = reward + 500
+			#print(agentName + " a touché une cible")
+		"""
+		#Angle Ennemi
+		if(abs(next_state.S_A_ennemy_min) < abs(current_state.S_A_ennemy_min)):
+			reward = reward + 50
+		elif(abs(next_state.S_A_ennemy_min) > abs(current_state.S_A_ennemy_min)):
+			reward = reward - 50
+		else:
+			reward = reward - 0.5
+
+	#Réinitialiser les booléennes
+	agent.estTouche = False
+	agent.estMort = False
+	agent.cibleTouchee = False
+	agent.aManger = False
+	"""
+	"""
+	if not game.isTraining:
+		if agent.team == 1:
+			blueScore = blueScore + reward
+		else:
+			redScore = redScore + reward
+	"""	
 	return reward
 
 
@@ -451,11 +536,18 @@ def calcul_reward(current_state,next_state):
 
 #entrainement de tout les agents
 def qtrain():
-	global q_table_E1, q_table_E2
+	global q_table_E1, q_table_E2, total_reward_bleu, total_reward_rouge
 	
 	list_total_reward = [0 for agent in game.list_agent] # np.zeros((1,len(game.list_agent)),dtype=int)
 	list_action = [None for agent in game.list_agent]
 	list_state = [None for agent in game.list_agent]
+
+	total_reward_bleu = [0 for i in range(TRAINING_N_EPISODE)]
+	total_reward_rouge = [0 for i in range(TRAINING_N_EPISODE)]
+	total_pommes_bleu = [0 for i in range(TRAINING_N_EPISODE)]
+	total_pommes_rouge = [0 for i in range(TRAINING_N_EPISODE)]
+	total_victimes_bleu = [0 for i in range(TRAINING_N_EPISODE)]
+	total_victimes_rouge = [0 for i in range(TRAINING_N_EPISODE)]
 	#Pour chaque partie
 	for i in range(TRAINING_N_EPISODE):
 		game.reset()
@@ -463,10 +555,31 @@ def qtrain():
 		p = np.floor(1000*i/TRAINING_N_EPISODE)/10
 		osSystem("clear") #Vider la console
 		#Message affiché à chaque itération
+		runTime = np.floor(time.time() - startTime)
+		timeLeft = np.floor((TRAINING_N_EPISODE-i)*(runTime/(i or 1)))
+
+		runTime_h = int(runTime/3600)
+		runTime_m = int(runTime/60)%60
+		runTime_s = int(runTime%60)
+
+		timeLeft_h = int(timeLeft/3600)
+		timeLeft_m = int(timeLeft/60)%60
+		timeLeft_s = int(timeLeft%60)
+
+		runTime_h = (runTime_h < 10 and "0" or " ") + str(runTime_h)
+		runTime_m = (runTime_m < 10 and ":0" or ":") + str(runTime_m)
+		runTime_s = (runTime_s < 10 and ":0" or ":") + str(runTime_s)
+		timeLeft_h = (timeLeft_h < 10 and "0" or " ") + str(timeLeft_h)
+		timeLeft_m = (timeLeft_m < 10 and ":0" or ":") + str(timeLeft_m)
+		timeLeft_s = (timeLeft_s < 10 and ":0" or ":") + str(timeLeft_s)
+
+		
 		print("Entrainement en cours...")
 		print("Episode : " + str(i) + "/" + str(TRAINING_N_EPISODE))
-		print("(" + str(p) + "%)\n")
-		print("Q_table sizes:")
+		print("(" + str(p) + "%)")
+		print("Time elapsed: " + runTime_h + runTime_m + runTime_s)
+		print("Estimated time left: " + timeLeft_h + timeLeft_m + timeLeft_s)
+		print("\nQ_table sizes:")
 		print("BLUE: " + str(len(q_table_E1.keys())) + "		RED: " + str(len(q_table_E2.keys())))
 		for k in range(len(game.list_agent)):
 			list_state[k] = None 
@@ -480,7 +593,25 @@ def qtrain():
 			list_action = takeAllActions(list_state)
 			game.update()
 			updateQTable(list_state, list_action, list_total_reward)
-	#print("final q table : " + str(q_table)) #debug
+
+		#stockage des total rewards
+		for k in range(len(game.list_agent)):
+
+			if game.list_agent[k].team == 1: # BLEU
+				total_reward_bleu[i] = total_reward_bleu[i] + list_total_reward[k]
+				total_pommes_bleu[i] = total_pommes_bleu[i] + game.list_agent[k].pommesMangees
+				total_victimes_bleu[i] = total_victimes_bleu[i] + game.list_agent[k].victimes
+			elif game.list_agent[k].team == 2: # ROUGE
+				total_reward_rouge[i] = total_reward_rouge[i] + list_total_reward[k]
+				total_pommes_rouge[i] = total_pommes_rouge[i] + game.list_agent[k].pommesMangees
+				total_victimes_rouge[i] = total_victimes_rouge[i] + game.list_agent[k].victimes
+
+	#print("R_bleu = " + str(total_reward_bleu))
+	#print("R_rouge = " + str(total_reward_rouge))
+	print("P_bleu = " + str(total_pommes_bleu))
+	print("P_rouge = " + str(total_pommes_rouge))
+	print("V_bleu = " + str(total_victimes_bleu))
+	print("V_rouge = " + str(total_victimes_rouge))
 
 def takeAllActions(list_state):
  # pour chaque etat d'agent choisi une action associé grace a la Q_table
@@ -493,7 +624,7 @@ def takeAllActions(list_state):
 
 
 def updateQTable(list_state, list_action, list_total_reward):
-	current_learning_rate = 1 #0.001 #A changer
+	current_learning_rate = TRAINING_LEARNING_RATE #0.001 #A changer
 	for m in range(len(game.list_agent)):
 		# get agent team
 		team = list_state[m].agent.team
@@ -544,14 +675,14 @@ class Game():
 	# initialisations : 
 	# "current" : la valeur utilisee par le jeu
 	# "window" : la valeur qui l'utilisateur change a la fenettre
-	current_nb_agents_E1 = 1 # equipe 1
-	window_nb_agents_E1 = 1
-	current_nb_agents_E2 = 1 # equipe 2
-	window_nb_agents_E2 = 1
+	current_nb_agents_E1 = NB_AGENTS_BLEUS # equipe 1
+	window_nb_agents_E1 = NB_AGENTS_BLEUS
+	current_nb_agents_E2 = NB_AGENTS_ROUGES # equipe 2
+	window_nb_agents_E2 = NB_AGENTS_ROUGES
 	current_resource_spawn_rate = 0.02
 	window_resource_spawn_rate = 0.02
-	current_learning_rate = 0.005
-	window_learning_rate = 0.005
+	current_learning_rate = TRAINING_LEARNING_RATE
+	window_learning_rate = TRAINING_LEARNING_RATE
 	current_random_path_prob = 0 # prob de l'exploration de boltzman
 	window_random_path_prob = 0 # prob de l'exploration de boltzman
 	current_time_period = 100 # temps entre frames
@@ -593,7 +724,10 @@ class Game():
 		pass #TODO ?
 
 	def reset(self):
+		#global blueScore, redScore
 		self.gameCounter = 0
+		#blueScore = 0
+		#redScore = 0
 		#print ("DEBUG reset") # DEBUG
 		self.isPlay = False # stop the game
 		self.objectsList = [] # effacer tous les objets
@@ -620,7 +754,7 @@ class Game():
 			print("time_modulo : " + str(self.current_time_modulo))
 			print("nombre_depisodes : " + str(self.current_nombre_depisodes))
 		self.creer_agents()
-		for i in range(3):
+		for i in range(NB_MAX_RESOURCES):
 			self.creer_resource()
 		if not self.isTraining:
 			ui.gameWidget.update()
@@ -652,12 +786,6 @@ class Game():
 		# mouvement des agents et tirs
 		for objet in self.objectsList:
 			objet.move()
-		# Ajoute des ressources
-		m = rd.uniform(0,1)
-		if m < self.current_resource_spawn_rate:
-			#x = rd.randint(150, GAME_AREA_WIDTH - 150 - RESOURCE_WIDTH)
-			#y = rd.randint(0, 100 - RESOURCE_WIDTH)
-			self.creer_resource()
 
 		#rechargement agents
 		for agent in self.list_agent:
@@ -673,12 +801,13 @@ class Game():
 					self.objectsList.remove(resource)
 					#TODO : donner récompense à Agent
 					agent.aMange = True
+					agent.pommesMangees = agent.pommesMangees + 1
 		# collision tir-agent
 		for agent in self.list_agent:
 			for p in self.list_projectile:
 				if agent.collision(p) and agent.team != p.team:
 					p.agent.cibleTouchee = True
-					agent.takeDamage(p.dmg)
+					agent.takeDamage(p)
 					self.objectsList.remove(p)
 					self.list_projectile.remove(p)
 					continue
@@ -689,6 +818,9 @@ class Game():
 				self.objectsList.remove(p)
 				self.list_projectile.remove(p)
 
+		# Ajoute des ressources
+		while len(self.list_resource) < NB_MAX_RESOURCES:
+			self.creer_resource()
 
 
 
@@ -703,6 +835,10 @@ if __name__ == '__main__':
 			if((game.gameCounter%game.current_time_modulo)==0):
 				ui.gameWidget.update()
 			game.gameCounter += 1
+			osSystem("clear")
+			print("STEP : " + str(game.gameCounter))
+			#print("BLUE SCORE : " + str(blueScore))
+			#print("RED SCORE : " + str(redScore))
 		#timer.stop()
 		timePeriod = game.current_time_period
 		#timer.start(timePeriod)
@@ -713,8 +849,12 @@ if __name__ == '__main__':
 		load_q_tables()
 	if "-t" in sys.argv:
 		game.isTraining = True
+		startTime = time.time()
 		qtrain()
 		save_q_tables()
+		#plt.plot(np.linspace(1,TRAINING_N_EPISODES,TRAINING_N_EPISODES,dtype = int), total_reward_bleu)
+		#plt.plot(np.linspace(1,TRAINING_N_EPISODES,TRAINING_N_EPISODES,dtype = int), total_reward_rouge)
+		#plt.show()
 		sys.exit()
 	else:
 		fenetre = Fenetre(game)

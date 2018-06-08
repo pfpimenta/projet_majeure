@@ -32,11 +32,11 @@ class State():
 			"A_projectile_min": [-180, -90, -50, -20, -5, 0, 5, 20, 50, 90, 180]}
 	"""
 	
-	thresholds = {"D_ennemy_min": [30, 80, 150, 250, 400, 1000],
-			"D_resource_min": [30, 80, 150, 250, 400, 1000],
-			"D_projectile_min": [30, 80, 150, 250, 400, 1000],
+	thresholds = {"D_ennemy_min": [30, 80, 200, 900, 1000],
+			"D_resource_min": [20, 50, 100, 250, 900, 1000],
+			"D_projectile_min": [80, 200, 400, 900, 1000],
 			"A_ennemy_min": [-100, -80, -10, 10, 80, 100],
-			"A_resource_min": [-100, -80, -10, 10, 80, 100]}
+			"A_resource_min": [-10, 10, 180]}
 	
 	def __init__(self,agent,objectsList):
 		#self.total_pv_ennemy = 0
@@ -83,6 +83,7 @@ class State():
 		self.S_D_resource_min = -1
 		self.S_A_resource_min = -1
 		self.S_D_projectile_min = -1
+		self.S_previous_action = -1
 		#self.S_A_projectie_min = 0
 		#self.state_pv = 0
 		#self.state_total_pv_ennemy = 0
@@ -93,31 +94,34 @@ class State():
 			self.D_ennemy_min = d
 			self.A_ennemy_min = self.table_A_ennemy[self.table_D_ennemy.index(d)]
 		else:
-			self.D_ennemy_min = 1000
+			self.D_ennemy_min = 999
 			self.A_ennemy_min = 0
 		#position moyenne allié
 		#if(len(self.table_dist_ally) > 0): # s'il y a un ally
 			#self.mean_distance_ally = sum(self.table_dist_ally)/len(self.table_dist_ally)
 			#self.mean_angle_ally = sum(self.table_angle_ally)/len(self.table_dist_ally)
 		#else:
-			#self.mean_distance_ally = 1000
+			#self.mean_distance_ally = 999
 			#self.mean_angle_ally = 0
 		#position ressource la plus proche
 		if(len(self.table_D_resource) > 0): # s'il y a un resource
 			self.D_resource_min = min(self.table_D_resource)
 			self.A_resource_min = self.table_A_resource[self.table_D_resource.index(self.D_resource_min)]
 		else:
-			self.D_resource_min = 1000
+			self.D_resource_min = 999
 			self.A_resource_min = 0
 		#position tir le plus proche
 		if(len(self.table_D_projectile) > 0): # s'il y a un tir
 			self.D_projectile_min = min(self.table_D_projectile)
 			self.A_projectile_min = self.table_A_projectile[self.table_D_projectile.index(self.D_projectile_min)]
 		else:
-			self.D_projectile_min = 1000
+			self.D_projectile_min = 999
 			self.A_projectile_min = 0
-		#Point de vie
-		self.pv = agent.pv
+
+		if agent.current_action:
+			self.S_previous_action = agent.current_action
+		else:
+			self.S_previous_action = 0
 
 
 		self.stateID = 1
@@ -126,7 +130,7 @@ class State():
 		for k in range(len(T)):
 			if self.D_ennemy_min <= T[k]:
 				self.S_D_ennemy_min = k
-				self.stateID = self.stateID * (self.primes[0]**self.S_D_ennemy_min)
+				#self.stateID = self.stateID * (self.primes[0]**self.S_D_ennemy_min)
 				break
 		if self.S_D_ennemy_min == -1:
 			self.S_D_ennemy_min = len(T) - 1 #distance maximale
@@ -135,7 +139,7 @@ class State():
 		for k in range(len(T)):
 			if self.A_ennemy_min <= T[k]:
 				self.S_A_ennemy_min = k
-				self.stateID = self.stateID * (self.primes[1]**self.S_A_ennemy_min)
+				#self.stateID = self.stateID * (self.primes[1]**self.S_A_ennemy_min)
 				break
 		if self.S_A_ennemy_min == -1:
 			self.S_A_ennemy_min = 0 #modulo (le dernier angle est lié au premier)
@@ -144,7 +148,7 @@ class State():
 		for k in range(len(T)):
 			if self.D_resource_min <= T[k]:
 				self.S_D_resource_min = k
-				self.stateID = self.stateID * (self.primes[2]**self.S_D_resource_min)
+				#self.stateID = self.stateID * (self.primes[2]**self.S_D_resource_min)
 				break
 		if self.S_D_resource_min == -1:
 			self.S_D_resource_min = len(T) - 1 #distance maximale
@@ -153,7 +157,7 @@ class State():
 		for k in range(len(T)):
 			if self.A_resource_min <= T[k]:
 				self.S_A_resource_min = k
-				self.stateID = self.stateID * (self.primes[3]**self.S_A_resource_min)
+				#self.stateID = self.stateID * (self.primes[3]**self.S_A_resource_min)
 				break
 		if self.S_A_resource_min == -1:
 			self.S_A_resource_min = 0 #modulo (le dernier angle est lié au premier)
@@ -162,10 +166,20 @@ class State():
 		for k in range(len(T)):
 			if self.D_projectile_min <= T[k]:
 				self.S_D_projectile_min = k
-				self.stateID = self.stateID * (self.primes[4]**self.S_D_projectile_min)
+				#self.stateID = self.stateID * (self.primes[4]**self.S_D_projectile_min)
 				break
 		if self.S_D_projectile_min == -1:
 			self.S_D_projectile_min = len(T) - 1 #distance maximale
+
+
+		if agent.team == 1:
+			self.stateID = self.stateID * (self.primes[0]**self.S_D_resource_min)
+			self.stateID = self.stateID * (self.primes[1]**self.S_A_resource_min)
+			self.stateID = self.stateID * (self.primes[2]**self.S_previous_action)
+		elif agent.team == 2:
+			self.stateID = self.stateID * (self.primes[0]**self.S_D_ennemy_min)
+			self.stateID = self.stateID * (self.primes[1]**self.S_A_ennemy_min)
+			self.stateID = self.stateID * (self.primes[2]**self.S_previous_action)
 
 		"""
 		T = self.thresholds["A_projectile_min"]
