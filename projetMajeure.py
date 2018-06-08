@@ -78,13 +78,13 @@ ACTION_SHOOT = 4
 ACTION_BUILD = 5
 """
 
-ACTION_STOP = 0
-ACTION_MOVE = 1
-ACTION_TRIGO = 2
-ACTION_HORAIRE = 3
-ACTION_SHOOT = 4
+ACTION_STOP = 5
+ACTION_MOVE = 0
+ACTION_TRIGO = 1
+ACTION_HORAIRE = 2
+ACTION_SHOOT = 3
 ACTION_BUILD = 8008135
-ACTIONS = [ACTION_STOP, ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE, ACTION_SHOOT]
+ACTIONS = [ACTION_MOVE,ACTION_TRIGO,ACTION_HORAIRE, ACTION_SHOOT]
 
 
 
@@ -97,15 +97,15 @@ TYPE_BLOCK = 3
 
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
-TRAINING_N_EPISODE = 5000
-TRAINING_N_STEP = 100
-TRAINING_GAMMA = 0.95
+TRAINING_N_EPISODE = 1000
+TRAINING_N_STEP = 500
+TRAINING_GAMMA = 0.97
 
 #N_STATE = len([0:np.sqrt(H*H+W*W):])
 global q_table_E1, q_table_E2
 q_table_E1 = {} #equipe bleu
 q_table_E2 = {} #equipe rouge
-eps = 0.1
+eps = 0.2
 
 
 class Objet:
@@ -255,6 +255,7 @@ class Agent(Objet):
 
 		self.x = x
 		self.y = y
+		self.angle = angle
 		self.pv = AGENT_PV_INITIAL
 			
 		
@@ -351,7 +352,7 @@ class Resource(Objet):
 		Objet.__init__(self,x,y,0,0,0,0,TYPE_RESOURCE);
 		self.reward =  RESOURCE_REWARD
 		
-def q(state, action = None, team = 1):
+def q(state, action = None, team = 0):
 	global q_table_E1, q_table_E2
 
 	if team == 1: # EQUIPE BLEU
@@ -364,21 +365,21 @@ def q(state, action = None, team = 1):
 
 	if state.stateID not in q_table.keys():
 		q_table[state.stateID] = [0 for i in ACTIONS]
-		#print("state.stateID not in q_table.keys():" + str(q_table[state.stateID]))
 	if action is None:
-		#print("action == None : " + str(q_table[state.stateID]))
 		return q_table[state.stateID]
 
-	#print(q_table[state.stateID])
 	return q_table[state.stateID][action]
 
 
 
-def markov_process(state):
-	if (rd.uniform(0,1) < eps): #prob eps de d'exploorer
+def markov_process(state, agent, isTraining):
+	if (isTraining and rd.uniform(0,1) < eps):
 		return rd.choice(ACTIONS)
 	else:
-		return np.argmax(q(state)) 
+		qt = q(state, team=agent.team)
+		actions = np.argwhere(qt == np.amax(qt))
+		a = rd.choice(actions)
+		return a
 
 def calcul_reward(current_state,next_state):
 
@@ -416,21 +417,21 @@ def calcul_reward(current_state,next_state):
 	elif (next_state.D_resource_min > current_state.D_resource_min):
 		reward = reward - 10
 	else:
-		reward = reward - 0
+		reward = reward - 0.1
 
 	#si un tir ennemy se rapproche de lui
 	if (next_state.D_projectile_min < current_state.D_projectile_min):
-		reward = reward - 0
+		reward = reward - 3
 	#else:
 	#	reward = reward + 3
 
 	#si orienté plus justement face a ressource
 	if(abs(next_state.A_resource_min) < abs(current_state.A_resource_min)):
-		reward = reward + 5
+		reward = reward + 2
 	elif(abs(next_state.A_resource_min) > abs(current_state.A_resource_min)):
-		reward = reward - 5
+		reward = reward - 2
 	else:
-		reward = reward - 0.05
+		reward = reward - 0.02
 
 #si orienté plus justement face a ennemi
 	if(abs(next_state.A_ennemy_min) < abs(current_state.A_ennemy_min)):
@@ -450,13 +451,14 @@ def calcul_reward(current_state,next_state):
 
 #entrainement de tout les agents
 def qtrain():
-	global q_table
+	global q_table_E1, q_table_E2
 	
 	list_total_reward = [0 for agent in game.list_agent] # np.zeros((1,len(game.list_agent)),dtype=int)
 	list_action = [None for agent in game.list_agent]
 	list_state = [None for agent in game.list_agent]
 	#Pour chaque partie
 	for i in range(TRAINING_N_EPISODE):
+		game.reset()
 		#vider les lists
 		p = np.floor(1000*i/TRAINING_N_EPISODE)/10
 		osSystem("clear") #Vider la console
@@ -464,6 +466,8 @@ def qtrain():
 		print("Entrainement en cours...")
 		print("Episode : " + str(i) + "/" + str(TRAINING_N_EPISODE))
 		print("(" + str(p) + "%)\n")
+		print("Q_table sizes:")
+		print("BLUE: " + str(len(q_table_E1.keys())) + "		RED: " + str(len(q_table_E2.keys())))
 		for k in range(len(game.list_agent)):
 			list_state[k] = None 
 			list_action[k] = None 
@@ -476,21 +480,20 @@ def qtrain():
 			list_action = takeAllActions(list_state)
 			game.update()
 			updateQTable(list_state, list_action, list_total_reward)
-			#print("Episode: "+ str(i) + " q table : " + str(q_table)) #debug
-
 	#print("final q table : " + str(q_table)) #debug
 
 def takeAllActions(list_state):
  # pour chaque etat d'agent choisi une action associé grace a la Q_table
 	list_action = [None for agent in game.list_agent]
 	for m in range(len(list_state)):
-		list_action[m] = markov_process(list_state[m])
+		list_action[m] = markov_process(list_state[m], game.list_agent[m], True)
 		game.list_agent[m].current_action = list_action[m] #met a jour l'action de l'agent dans la classe
+		game.list_agent[m].execute_action(list_state[m])
 	return list_action
 
 
 def updateQTable(list_state, list_action, list_total_reward):
-	current_learning_rate = 0.001 #A changer
+	current_learning_rate = 1 #0.001 #A changer
 	for m in range(len(game.list_agent)):
 		# get agent team
 		team = list_state[m].agent.team
@@ -503,7 +506,9 @@ def updateQTable(list_state, list_action, list_total_reward):
 		list_total_reward[m] = list_total_reward[m] + reward
 		#CREATION NOUVEL ETAT POUR CHAQUE AGENT
 		#q(list_state[m])[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m]) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state)) - q(list_state[m],list_action[m]))
-		q(list_state[m], team=team)[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m], team=team) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state,team=team)) - q(list_state[m],list_action[m],team=team))
+		#q(list_state[m], team=team)[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m], team=team) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state,team=team)) - q(list_state[m],list_action[m],team=team))
+		#pb de 1-2lambda
+		q(list_state[m], team=team)[list_action[m]] = (1-current_learning_rate)*q(list_state[m] , list_action[m], team=team) + current_learning_rate * (reward + TRAINING_GAMMA * max(q(next_state,team=team)))
 		#q(list_state[m])[list_action[m]]
 		list_state[m] = next_state
 		#print("Agent: "+ str(m) +"  Total reward = "+ str(list_total_reward[m]))
@@ -534,6 +539,7 @@ class Game():
 	list_resource = []
 	list_projectile = []
 	isPlay = False # flag : False = pause; True = play
+	isTraining = False
 	gameCounter = 1 # clock pour time modulo
 	# initialisations : 
 	# "current" : la valeur utilisee par le jeu
@@ -542,8 +548,8 @@ class Game():
 	window_nb_agents_E1 = 1
 	current_nb_agents_E2 = 1 # equipe 2
 	window_nb_agents_E2 = 1
-	current_resource_spawn_rate = 0
-	window_resource_spawn_rate = 0
+	current_resource_spawn_rate = 0.02
+	window_resource_spawn_rate = 0.02
 	current_learning_rate = 0.005
 	window_learning_rate = 0.005
 	current_random_path_prob = 0 # prob de l'exploration de boltzman
@@ -580,19 +586,20 @@ class Game():
 			self.objectsList.append(a)
 			self.list_agent.append(a)
 
-		#print("DEBUG LIST AGENTS : " + str(len(self.list_agent)))
 
 	def playPause(self):
-		print ("DEBUG play pause")
+		#print ("DEBUG play pause")
 		self.isPlay = not(self.isPlay) # toggle flag
 		pass #TODO ?
 
 	def reset(self):
-		print ("DEBUG reset") # DEBUG
+		self.gameCounter = 0
+		#print ("DEBUG reset") # DEBUG
 		self.isPlay = False # stop the game
 		self.objectsList = [] # effacer tous les objets
 		self.list_agent = []
 		self.list_resource = []
+		self.list_projectile = []
 		# actualiser les valeurs
 		self.current_nb_agents_E1 = self.window_nb_agents_E1
 		self.current_nb_agents_E2 = self.window_nb_agents_E2
@@ -615,7 +622,8 @@ class Game():
 		self.creer_agents()
 		for i in range(3):
 			self.creer_resource()
-		ui.gameWidget.update()
+		if not self.isTraining:
+			ui.gameWidget.update()
 
 	def update_parametres(self):
 		self.window_nb_agents_E1 = ui.spinBoxE1.value()
@@ -634,13 +642,13 @@ class Game():
 		self.current_time_modulo = self.window_time_modulo
 
 	def update(self):
-		# appellee a chaque frame
-		# choix d'action des agents
-		for agent in self.list_agent:
-			state = State(agent, self.objectsList)
-			action = markov_process(state)
-			agent.current_action = action
-			agent.execute_action(state)
+		if not self.isTraining:
+			for agent in self.list_agent:
+				state = State(agent, self.objectsList)
+				action = markov_process(state, agent, False)
+				agent.current_action = action
+				agent.execute_action(state)
+		
 		# mouvement des agents et tirs
 		for objet in self.objectsList:
 			objet.move()
@@ -667,12 +675,12 @@ class Game():
 					agent.aMange = True
 		# collision tir-agent
 		for agent in self.list_agent:
-			for projectile in self.list_projectile:
-				if agent.collision(projectile) and agent.team != projectile.team:
-					projectile.agent.cibleTouchee = True
-					agent.takeDamage(projectile.dmg)
-					self.objectsList.remove(projectile)
-					self.list_projectile.remove(projectile)
+			for p in self.list_projectile:
+				if agent.collision(p) and agent.team != p.team:
+					p.agent.cibleTouchee = True
+					agent.takeDamage(p.dmg)
+					self.objectsList.remove(p)
+					self.list_projectile.remove(p)
 					continue
 
 		#projectiles sortant du terrain
@@ -691,11 +699,10 @@ if __name__ == '__main__':
 	def timeout():
 		if(game.isPlay):
 			# "loop" du jeu
-			# print("DEBUG timeout") #debug
 			game.update()
 			if((game.gameCounter%game.current_time_modulo)==0):
 				ui.gameWidget.update()
-		game.gameCounter += 1
+			game.gameCounter += 1
 		#timer.stop()
 		timePeriod = game.current_time_period
 		#timer.start(timePeriod)
@@ -705,6 +712,7 @@ if __name__ == '__main__':
 	if "-l" in sys.argv:
 		load_q_tables()
 	if "-t" in sys.argv:
+		game.isTraining = True
 		qtrain()
 		save_q_tables()
 		sys.exit()
