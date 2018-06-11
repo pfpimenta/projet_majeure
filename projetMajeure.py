@@ -247,6 +247,7 @@ class Agent(Objet):
 
 	def shoot(self):
 		if self.reload == 0:
+			self.aTire = True
 			self.reload = self.reloadMax
 			projectile = Tir(self)
 			game.objectsList.append(projectile)
@@ -264,10 +265,10 @@ class Agent(Objet):
 		angle = rd.randint(0,360)
 		if self.team == 1: #BLEU
 			x = rd.randint(0,100-AGENT_WIDTH)
-			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
+			y = rd.randint(0,GAME_AREA_HEIGHT-AGENT_HEIGHT)
 		elif self.team == 2: #ROUGE
 			x = rd.randint(GAME_AREA_WIDTH-100,GAME_AREA_WIDTH-AGENT_WIDTH)
-			y = rd.randint(GAME_AREA_HEIGHT-100,GAME_AREA_HEIGHT-AGENT_HEIGHT)
+			y = rd.randint(0,GAME_AREA_HEIGHT-AGENT_HEIGHT)
 		else:
 			print("ERR: INCORRECT AGENT")
 
@@ -516,11 +517,7 @@ def calcul_reward(current_state,next_state):
 		else:
 			reward = reward - 0.5
 
-	#Réinitialiser les booléennes
-	agent.estTouche = False
-	agent.estMort = False
-	agent.cibleTouchee = False
-	agent.aManger = False
+	
 	"""
 	"""
 	if not game.isTraining:
@@ -529,6 +526,12 @@ def calcul_reward(current_state,next_state):
 		else:
 			redScore = redScore + reward
 	"""	
+	#Réinitialiser les booléennes
+	agent.estTouche = False
+	agent.estMort = False
+	agent.cibleTouchee = False
+	agent.aManger = False
+	agent.aTire = False
 	return reward
 
 
@@ -698,8 +701,8 @@ class Game():
 			self.creer_resource()
 
 	def creer_resource(self):
-		x = rd.randint(0, GAME_AREA_WIDTH - RESOURCE_WIDTH)
-		y = rd.randint(0, GAME_AREA_WIDTH - 100 - RESOURCE_WIDTH)
+		x = rd.randint(100, GAME_AREA_WIDTH - RESOURCE_WIDTH - 100)
+		y = rd.randint(0, GAME_AREA_WIDTH  - RESOURCE_WIDTH)
 		resource = Resource(x,y)
 		self.objectsList.append(resource)
 		self.list_resource.append(resource)

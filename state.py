@@ -23,7 +23,7 @@ class State():
 	table_A_resource = []
 	table_D_resource = []
 	primes = [2, 3, 5, 7, 11, 13, 17, 19]
-	"""
+	
 	thresholds = {"D_ennemy_min": [20, 80, 150, 250, 400, 1000],
 			"A_ennemy_min": [-180, -90, -50, -20, -5, 0, 5, 20, 50, 90, 180],
 			"D_resource_min": [20, 80, 150, 250, 400, 1000],
@@ -37,7 +37,7 @@ class State():
 			"D_projectile_min": [80, 200, 400, 900, 1000],
 			"A_ennemy_min": [-100, -80, -10, 10, 80, 100],
 			"A_resource_min": [-10, 10, 180]}
-	
+	"""
 	def __init__(self,agent,objectsList):
 		#self.total_pv_ennemy = 0
 		self.agent = agent
