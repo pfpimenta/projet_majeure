@@ -18,4 +18,9 @@ Pour executer:
 python3 projetMajeure.py
 
 Faire un apprentissage par Q-Learning 'from scratch' (aucune bibliothèque d'apprentissage):
-Le but de ce projet 
+Le but de ce projet de creer son propre environement avec des règles simples puis d'entrainer un certain nombre d'agent par Q-Learning.
+
+Création de l'environement:
+
+Q-learning:
+Qu'est ce que le Q-learning ? 
