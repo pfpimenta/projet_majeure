@@ -104,7 +104,7 @@ TYPE_BLOCK = 3
 #TRAINING
 ## Modifié pour commencer avec TRAINING_
 TRAINING_N_EPISODE = 1000
-TRAINING_N_STEP = 800
+TRAINING_N_STEP = 750
 TRAINING_GAMMA = 0.95
 TRAINING_LEARNING_RATE = 0.01
 
@@ -541,7 +541,7 @@ def calcul_reward(current_state,next_state):
 def qtrain():
 	global q_table_E1, q_table_E2, total_reward_bleu, total_reward_rouge
 	
-	list_total_reward = [0 for agent in game.list_agent] # np.zeros((1,len(game.list_agent)),dtype=int)
+	list_total_reward = [0 for agent in game.list_agent]
 	list_action = [None for agent in game.list_agent]
 	list_state = [None for agent in game.list_agent]
 
@@ -553,9 +553,15 @@ def qtrain():
 	total_victimes_rouge = [0 for i in range(TRAINING_N_EPISODE)]
 	#Pour chaque partie
 	for i in range(TRAINING_N_EPISODE):
+		# variation du nombre des agents a chaque episode
+		#game.window_nb_agents_E1 = rd.randint(1, 5)
+		#game.window_nb_agents_E2 = rd.randint(0, 5)
 		game.reset()
 		#vider les lists
 		p = np.floor(1000*i/TRAINING_N_EPISODE)/10
+		list_total_reward = [0 for agent in game.list_agent]
+		list_action = [None for agent in game.list_agent]
+		list_state = [None for agent in game.list_agent]
 		osSystem("clear") #Vider la console
 		#Message affiché à chaque itération
 		runTime = np.floor(time.time() - startTime)
@@ -584,10 +590,7 @@ def qtrain():
 		print("Estimated time left: " + timeLeft_h + timeLeft_m + timeLeft_s)
 		print("\nQ_table sizes:")
 		print("BLUE: " + str(len(q_table_E1.keys())) + "		RED: " + str(len(q_table_E2.keys())))
-		for k in range(len(game.list_agent)):
-			list_state[k] = None 
-			list_action[k] = None 
-			list_total_reward[k] = 0 
+
 		#initialisation ETAT agent
 		for k in range(len(game.list_agent)):
 			list_state[k] = State(game.list_agent[k],game.objectsList); #Stock les etats de chaque agent
@@ -765,9 +768,9 @@ class Game():
 	def update_parametres(self):
 		self.window_nb_agents_E1 = ui.spinBoxE1.value()
 		self.window_nb_agents_E2 = ui.spinBoxE2.value()
-		self.window_resource_spawn_rate = ui.SpinBoxRSR.value()
-		self.window_learning_rate = ui.SpinBoxLearningRate.value()
-		self.window_random_path_prob = ui.SpinBoxRPP.value()
+		#self.window_resource_spawn_rate = ui.SpinBoxRSR.value()
+		#self.window_learning_rate = ui.SpinBoxLearningRate.value()
+		#self.window_random_path_prob = ui.SpinBoxRPP.value()
 		self.window_time_period = ui.SpinBoxTimePeriod.value()
 		self.window_time_modulo = ui.spinBoxModulo.value()
 		self.current_nb_agents_E1 = self.window_nb_agents_E1
