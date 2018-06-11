@@ -1,8 +1,10 @@
 # PROJET MAJEURE - Reinforcement Learning
 
 Code du projet de majeure a CPE Lyon
+Ce projet met en place l'apprentissage de 2 équipes d'agents dans un environement (un jeu).
+Ce projet à été réalisé dans le cardre du projet 'majeur' de spécialisation en fin de 4ème année à l'école de CPE Lyon.
 
-Group:
+Les auteurs:
 
 * ERBACHER, Pierre
  
@@ -14,3 +16,6 @@ Group:
 Pour executer:
 
 python3 projetMajeure.py
+
+Faire un apprentissage par Q-Learning 'from scratch' (aucune bibliothèque d'apprentissage):
+Le but de ce projet 
