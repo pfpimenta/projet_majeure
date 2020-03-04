@@ -12,7 +12,7 @@ Les auteurs:
  
 * TIZON, Nicolas
 
-![alt text](https://raw.githubusercontent.com/pfpimenta/projet_majeure/edit/master/postermajeure.png.png)
+![alt text](https://raw.githubusercontent.com/pfpimenta/projet_majeure/master/postermajeure.png)
 
 Pour executer:
 
